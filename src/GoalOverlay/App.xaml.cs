@@ -40,6 +40,7 @@ public partial class App : Application
     public static IGoalService GoalService { get; } = new GoalService(GoalRepository, Clock, Logger);
     public static IAutostartService AutostartService { get; } = new AutostartService(Logger);
     public static IHotkeyService HotkeyService { get; } = new HotkeyService(Logger);
+    public static IReminderService ReminderService { get; } = new ReminderService(GoalRepository, GoalService, Clock, Logger);
 
     public static OverlayWindow? OverlayWindow { get; private set; }
     public static MainWindow? MainWindowInstance { get; private set; }
@@ -148,7 +149,10 @@ public partial class App : Application
             // 7. Khởi tạo System Tray Icon (H.NotifyIcon)
             InitializeTrayIcon();
 
-            Logger.Info("Đã khởi tạo thành công Overlay, MainWindow và System Tray Icon.");
+            // 8. Bắt đầu bộ định thời quét nhắc nhở mục tiêu (V1.1)
+            ReminderService.Start();
+
+            Logger.Info("Đã khởi tạo thành công Overlay, MainWindow, System Tray Icon và ReminderService.");
         }
         catch (Exception ex)
         {
@@ -238,6 +242,8 @@ public partial class App : Application
             _trayIcon?.Dispose();
             _trayIcon = null;
 
+            ReminderService.Stop();
+
             _registeredWait?.Unregister(null);
             _registeredWait = null;
             _eventWaitHandle?.Dispose();
@@ -269,6 +275,8 @@ public partial class App : Application
         {
             _trayIcon?.Dispose();
             _trayIcon = null;
+
+            ReminderService.Stop();
 
             _registeredWait?.Unregister(null);
             _registeredWait = null;

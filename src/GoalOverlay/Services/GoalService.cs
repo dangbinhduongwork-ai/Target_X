@@ -30,9 +30,12 @@ public class GoalService : IGoalService
             var allGoals = await _repository.LoadGoalsAsync();
             DateOnly today = _clock.Today;
 
+            // Sắp xếp: mục tiêu có giờ lên trước (tăng dần theo giờ), không có giờ xếp sau theo CreatedAt
             var todayGoals = allGoals
                 .Where(g => g.Type == GoalType.Daily && g.Date == today)
-                .OrderBy(g => g.CreatedAt)
+                .OrderBy(g => g.DueAt.HasValue ? 0 : 1)
+                .ThenBy(g => g.DueAt)
+                .ThenBy(g => g.CreatedAt)
                 .ToList();
 
             return todayGoals;
@@ -51,9 +54,12 @@ public class GoalService : IGoalService
             var allGoals = await _repository.LoadGoalsAsync();
             string currentMonth = _clock.CurrentMonth;
 
+            // Sắp xếp: mục tiêu có giờ/hạn chót lên trước (tăng dần theo DueAt), không có giờ xếp sau theo CreatedAt
             var monthGoals = allGoals
                 .Where(g => g.Type == GoalType.Monthly && g.Month == currentMonth)
-                .OrderBy(g => g.CreatedAt)
+                .OrderBy(g => g.DueAt.HasValue ? 0 : 1)
+                .ThenBy(g => g.DueAt)
+                .ThenBy(g => g.CreatedAt)
                 .ToList();
 
             return monthGoals;
@@ -65,7 +71,7 @@ public class GoalService : IGoalService
         }
     }
 
-    public async Task<Goal> AddDailyGoalAsync(string text, DateOnly? date = null)
+    public async Task<Goal> AddDailyGoalAsync(string text, DateOnly? date = null, TimeOnly? reminderTime = null, DateTime? dueAt = null)
     {
         try
         {
@@ -75,22 +81,35 @@ public class GoalService : IGoalService
                 cleanText = cleanText[..120];
             }
 
+            DateOnly targetDate = date ?? _clock.Today;
+            DateTime? calculatedDueAt = dueAt;
+            if (!calculatedDueAt.HasValue && reminderTime.HasValue)
+            {
+                calculatedDueAt = targetDate.ToDateTime(reminderTime.Value);
+            }
+
             var allGoals = await _repository.LoadGoalsAsync();
             var newGoal = new Goal
             {
                 Id = Guid.NewGuid(),
                 Text = cleanText,
                 Type = GoalType.Daily,
-                Date = date ?? _clock.Today,
+                Date = targetDate,
                 Month = string.Empty,
                 IsDone = false,
-                CreatedAt = _clock.Now
+                CreatedAt = _clock.Now,
+                DueAt = calculatedDueAt,
+                SnoozedUntil = null,
+                LastNotifiedAt = null,
+                NotifyCount = 0,
+                ReminderDismissed = false
             };
 
             allGoals.Add(newGoal);
             await _repository.SaveGoalsAsync(allGoals);
 
-            _logger.Info($"Đã thêm mục tiêu ngày mới '{newGoal.Text}' cho ngày {newGoal.Date}");
+            _logger.Info($"Đã thêm mục tiêu ngày mới '{newGoal.Text}' cho ngày {newGoal.Date}" +
+                         (newGoal.DueAt.HasValue ? $" kèm hẹn giờ {newGoal.DueAt:HH:mm}" : string.Empty));
             return newGoal;
         }
         catch (Exception ex)
@@ -100,7 +119,74 @@ public class GoalService : IGoalService
         }
     }
 
-    public async Task<Goal> AddMonthlyGoalAsync(string text, string? month = null)
+    public async Task<bool> UpdateGoalReminderAsync(Guid id, bool hasReminder, TimeOnly? reminderTime)
+    {
+        try
+        {
+            var allGoals = await _repository.LoadGoalsAsync();
+            var target = allGoals.FirstOrDefault(g => g.Id == id);
+            if (target == null)
+            {
+                _logger.Warn($"Không tìm thấy mục tiêu {id} để cập nhật hẹn giờ.");
+                return false;
+            }
+
+            if (hasReminder && reminderTime.HasValue)
+            {
+                DateOnly baseDate = target.Type == GoalType.Daily && target.Date != default ? target.Date : _clock.Today;
+                target.DueAt = baseDate.ToDateTime(reminderTime.Value);
+            }
+            else
+            {
+                target.DueAt = null;
+            }
+
+            target.ReminderDismissed = false;
+            target.SnoozedUntil = null;
+            target.LastNotifiedAt = null;
+            target.NotifyCount = 0;
+
+            await _repository.SaveGoalsAsync(allGoals);
+            _logger.Info($"Đã cập nhật hẹn giờ mục tiêu '{target.Text}': HasReminder={hasReminder}, DueAt={target.DueAt}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Lỗi khi cập nhật hẹn giờ mục tiêu {id}", ex);
+            return false;
+        }
+    }
+
+    public async Task<bool> SetDueTimeAsync(Guid id, DateTime? dueAt)
+    {
+        try
+        {
+            var allGoals = await _repository.LoadGoalsAsync();
+            var target = allGoals.FirstOrDefault(g => g.Id == id);
+            if (target == null)
+            {
+                _logger.Warn($"Không tìm thấy mục tiêu {id} để cập nhật DueTime.");
+                return false;
+            }
+
+            target.DueAt = dueAt;
+            target.SnoozedUntil = null;
+            target.LastNotifiedAt = null;
+            target.NotifyCount = 0;
+            target.ReminderDismissed = false;
+
+            await _repository.SaveGoalsAsync(allGoals);
+            _logger.Info($"Đã cập nhật DueTime cho mục tiêu '{target.Text}': {dueAt}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Lỗi khi cập nhật DueTime mục tiêu {id}", ex);
+            return false;
+        }
+    }
+
+    public async Task<Goal> AddMonthlyGoalAsync(string text, string? month = null, DateTime? dueAt = null)
     {
         try
         {
@@ -119,13 +205,19 @@ public class GoalService : IGoalService
                 Date = default,
                 Month = string.IsNullOrWhiteSpace(month) ? _clock.CurrentMonth : month,
                 IsDone = false,
-                CreatedAt = _clock.Now
+                CreatedAt = _clock.Now,
+                DueAt = dueAt,
+                SnoozedUntil = null,
+                LastNotifiedAt = null,
+                NotifyCount = 0,
+                ReminderDismissed = false
             };
 
             allGoals.Add(newGoal);
             await _repository.SaveGoalsAsync(allGoals);
 
-            _logger.Info($"Đã thêm mục tiêu tháng mới '{newGoal.Text}' cho tháng {newGoal.Month}");
+            _logger.Info($"Đã thêm mục tiêu tháng mới '{newGoal.Text}' cho tháng {newGoal.Month}" +
+                         (newGoal.DueAt.HasValue ? $" kèm hạn {newGoal.DueAt:yyyy-MM-dd HH:mm}" : string.Empty));
             return newGoal;
         }
         catch (Exception ex)
@@ -164,6 +256,36 @@ public class GoalService : IGoalService
         }
     }
 
+    public async Task<bool> MarkDoneAsync(Guid id, bool isDone)
+    {
+        try
+        {
+            var allGoals = await _repository.LoadGoalsAsync();
+            var goal = allGoals.FirstOrDefault(g => g.Id == id);
+            if (goal == null)
+            {
+                _logger.Warn($"Không tìm thấy mục tiêu {id} để cập nhật trạng thái hoàn thành.");
+                return false;
+            }
+
+            goal.IsDone = isDone;
+            if (isDone)
+            {
+                goal.SnoozedUntil = null;
+                goal.ReminderDismissed = true;
+            }
+
+            await _repository.SaveGoalsAsync(allGoals);
+            _logger.Info($"Đã cập nhật trạng thái mục tiêu '{goal.Text}' thành: {(goal.IsDone ? "Hoàn thành" : "Chưa xong")}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Lỗi khi cập nhật trạng thái hoàn thành mục tiêu {id}", ex);
+            return false;
+        }
+    }
+
     public async Task<bool> ToggleGoalAsync(Guid id)
     {
         try
@@ -177,8 +299,13 @@ public class GoalService : IGoalService
             }
 
             goal.IsDone = !goal.IsDone;
-            await _repository.SaveGoalsAsync(allGoals);
+            if (goal.IsDone)
+            {
+                goal.SnoozedUntil = null;
+                goal.ReminderDismissed = true;
+            }
 
+            await _repository.SaveGoalsAsync(allGoals);
             _logger.Info($"Đã đổi trạng thái mục tiêu '{goal.Text}' thành: {(goal.IsDone ? "Hoàn thành" : "Chưa xong")}");
             return true;
         }
@@ -237,10 +364,15 @@ public class GoalService : IGoalService
             foreach (var goal in unfinishedOldGoals)
             {
                 goal.Date = today;
+                goal.DueAt = null; // Bỏ giờ khi carry-over sang hôm nay
+                goal.SnoozedUntil = null;
+                goal.LastNotifiedAt = null;
+                goal.NotifyCount = 0;
+                goal.ReminderDismissed = false;
             }
 
             await _repository.SaveGoalsAsync(allGoals);
-            _logger.Info($"Đã chuyển tiếp {unfinishedOldGoals.Count} mục tiêu chưa xong sang ngày hôm nay ({today})");
+            _logger.Info($"Đã chuyển tiếp {unfinishedOldGoals.Count} mục tiêu chưa xong sang ngày hôm nay ({today}) - Đã bỏ DueAt và reset các trường nhắc");
 
             return unfinishedOldGoals.Count;
         }

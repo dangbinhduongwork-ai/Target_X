@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace GoalOverlay.Models;
 
 /// <summary>
@@ -23,6 +25,21 @@ public class AppSettings
     public bool AutostartEnabled { get; set; } = false;
 
     public bool CarryOverUnfinished { get; set; } = true;
+
+    // =========================================================================
+    // V1.1 Giai đoạn 8: Cấu hình hệ thống nhắc nhở (Reminders)
+    // =========================================================================
+    public bool ReminderEnabled { get; set; } = true;
+
+    public bool ReminderSoundEnabled { get; set; } = true;
+
+    public List<int> SnoozeOptionsMinutes { get; set; } = new() { 5, 10, 30, 60 };
+
+    public int RepeatReminderMinutes { get; set; } = 0; // 0 = tắt
+
+    public int EarlyReminderMinutes { get; set; } = 0; // 0 = tắt
+
+    public bool DoNotDisturb { get; set; } = false;
 
     // Các thuộc tính phụ trợ lưu vị trí tọa độ khi kéo thả overlay
     public double WindowTop { get; set; } = 40.0;

@@ -19,6 +19,7 @@ public class JsonGoalRepository : IGoalRepository
     private readonly string _goalsFilePath;
     private readonly string _settingsFilePath;
     private readonly JsonSerializerOptions _jsonOptions;
+    private bool _needsV1MigrationBackup = false;
 
     public string BaseDirectory => _baseDirectory;
     public string GoalsFilePath => _goalsFilePath;
@@ -76,8 +77,24 @@ public class JsonGoalRepository : IGoalRepository
                 return new List<Goal>();
             }
 
-            var goals = JsonSerializer.Deserialize<List<Goal>>(json, _jsonOptions);
-            return goals ?? new List<Goal>();
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                // Định dạng V1.0 (mảng JSON thuần): Đánh dấu cần backup V1 khi lưu lần đầu
+                _needsV1MigrationBackup = true;
+                var legacyGoals = JsonSerializer.Deserialize<List<Goal>>(json, _jsonOptions);
+                return legacyGoals ?? new List<Goal>();
+            }
+            else if (doc.RootElement.ValueKind == JsonValueKind.Object)
+            {
+                // Định dạng V1.1+ (GoalsDocument chứa SchemaVersion)
+                var document = JsonSerializer.Deserialize<GoalsDocument>(json, _jsonOptions);
+                return document?.Goals ?? new List<Goal>();
+            }
+            else
+            {
+                throw new JsonException($"Dữ liệu goals.json không đúng định dạng mảng hoặc đối tượng hợp lệ (ValueKind={doc.RootElement.ValueKind}).");
+            }
         }
         catch (JsonException jsonEx)
         {
@@ -93,8 +110,50 @@ public class JsonGoalRepository : IGoalRepository
 
     public async Task SaveGoalsAsync(IEnumerable<Goal> goals)
     {
-        string json = JsonSerializer.Serialize(goals, _jsonOptions);
+        // Kiểm tra nếu cần tạo bản sao lưu goals.v1.bak từ file V1.0 hiện có
+        string v1BakPath = Path.Combine(_baseDirectory, "goals.v1.bak");
+        if (_needsV1MigrationBackup || (File.Exists(_goalsFilePath) && !File.Exists(v1BakPath) && IsExistingFileV1Format(_goalsFilePath)))
+        {
+            try
+            {
+                if (File.Exists(_goalsFilePath) && !File.Exists(v1BakPath))
+                {
+                    File.Copy(_goalsFilePath, v1BakPath, overwrite: false);
+                    _logger.Info($"Đã sao lưu dữ liệu V1.0 sang '{v1BakPath}' trước khi nâng cấp SchemaVersion 2.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn($"Không thể tạo bản sao lưu goals.v1.bak: {ex.Message}");
+            }
+            finally
+            {
+                _needsV1MigrationBackup = false;
+            }
+        }
+
+        var document = new GoalsDocument
+        {
+            SchemaVersion = 2,
+            Goals = goals is List<Goal> list ? list : new List<Goal>(goals)
+        };
+
+        string json = JsonSerializer.Serialize(document, _jsonOptions);
         await SafeWriteFileAsync(_goalsFilePath, json);
+    }
+
+    private static bool IsExistingFileV1Format(string filePath)
+    {
+        try
+        {
+            using var stream = File.OpenRead(filePath);
+            using var doc = JsonDocument.Parse(stream);
+            return doc.RootElement.ValueKind == JsonValueKind.Array;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public async Task<AppSettings> LoadSettingsAsync()

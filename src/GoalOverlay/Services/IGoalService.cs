@@ -13,10 +13,13 @@ public interface IGoalService
     Task<IReadOnlyList<Goal>> GetTodayGoalsAsync();
     Task<IReadOnlyList<Goal>> GetCurrentMonthGoalsAsync();
 
-    Task<Goal> AddDailyGoalAsync(string text, DateOnly? date = null);
-    Task<Goal> AddMonthlyGoalAsync(string text, string? month = null);
+    Task<Goal> AddDailyGoalAsync(string text, DateOnly? date = null, TimeOnly? reminderTime = null, DateTime? dueAt = null);
+    Task<Goal> AddMonthlyGoalAsync(string text, string? month = null, DateTime? dueAt = null);
 
     Task<bool> UpdateGoalTextAsync(Guid id, string newText);
+    Task<bool> UpdateGoalReminderAsync(Guid id, bool hasReminder, TimeOnly? reminderTime);
+    Task<bool> SetDueTimeAsync(Guid id, DateTime? dueAt);
+    Task<bool> MarkDoneAsync(Guid id, bool isDone);
     Task<bool> ToggleGoalAsync(Guid id);
     Task<bool> DeleteGoalAsync(Guid id);
 
