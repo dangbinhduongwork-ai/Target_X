@@ -17,6 +17,7 @@ public partial class MainWindow : Window
     private Point _dragStartPoint;
     private GoalItemViewModel? _draggedItem;
     private ListBox? _activeDragSource;
+    private bool _isExplicitExit = false;
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -30,6 +31,52 @@ public partial class MainWindow : Window
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         await ViewModel.InitializeCommand.ExecuteAsync(null);
+    }
+
+    /// <summary>
+    /// Khi người dùng nhấn nút X đỏ, cửa sổ chỉ ẩn xuống khay hệ thống (Tray) thay vì thoát ứng dụng
+    /// </summary>
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        base.OnClosing(e);
+
+        if (!_isExplicitExit)
+        {
+            e.Cancel = true;
+            Hide();
+        }
+    }
+
+    /// <summary>
+    /// Khôi phục cửa sổ và đưa lên trên cùng khi được gọi từ Tray Menu hoặc phím tắt
+    /// </summary>
+    public void ShowAndActivate()
+    {
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+
+        Show();
+        Activate();
+        Focus();
+    }
+
+    /// <summary>
+    /// Chuyển trực tiếp sang tab Cài đặt
+    /// </summary>
+    public void SelectSettingsTab()
+    {
+        MainTabs.SelectedIndex = 2;
+    }
+
+    /// <summary>
+    /// Cho phép đóng hoàn toàn cửa sổ khi người dùng bấm Thoát từ Tray Icon
+    /// </summary>
+    public void CloseExplicitly()
+    {
+        _isExplicitExit = true;
+        Close();
     }
 
     // --- Xử lý phím Enter thêm nhanh mục tiêu ---

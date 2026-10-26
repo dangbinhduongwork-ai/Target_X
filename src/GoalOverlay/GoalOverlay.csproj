@@ -14,21 +14,27 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
+  <!-- Cấu hình Publish tối ưu cho bản phát hành Release x64 Single-file -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="H.NotifyIcon.Wpf" Version="2.1.4" />
   </ItemGroup>
 
   <!-- Đảm bảo file icon Assets\app.ico luôn tồn tại hợp lệ ở định dạng chuẩn Windows ICO -->
-  <Target Name="EnsureAppIcon" BeforeTargets="BeforeCompile;CoreCompile" Condition="!Exists('$(MSBuildProjectDirectory)\Assets\app.ico')">
-    <MakeDir Directories="$(MSBuildProjectDirectory)\Assets" />
-    <PropertyGroup>
-      <_IconB64>AAABAAEAECABAAEAIAAIBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAA////8/aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==</_IconB64>
-    </PropertyGroup>
-    <WriteLinesToFile File="$(MSBuildProjectDirectory)\Assets\app.ico" Lines="" Overwrite="true" Condition="!Exists('$(MSBuildProjectDirectory)\Assets\app.ico')" />
-    <PropertyGroup>
-      <_Dummy>$([System.IO.File]::WriteAllBytes('$(MSBuildProjectDirectory)\Assets\app.ico', $([System.Convert]::FromBase64String('$(_IconB64)'))))</_Dummy>
-    </PropertyGroup>
+  <Target Name="EnsureAppIcon" BeforeTargets="PrepareForBuild;BeforeCompile;CoreCompile">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\EnsureIcon.ps1&quot;" />
   </Target>
+
+  <ItemGroup>
+    <Resource Include="Assets\app.ico" />
+  </ItemGroup>
 
 </Project>

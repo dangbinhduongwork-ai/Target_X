@@ -34,3 +34,6 @@ $RECYCLE.BIN/
 logs/
 *.log
 *.tmp
+
+## Inno Setup output
+installer/output/

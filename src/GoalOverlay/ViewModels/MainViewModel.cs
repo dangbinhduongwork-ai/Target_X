@@ -20,6 +20,8 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
     private readonly IGoalRepository _repository;
     private readonly IClock _clock;
     private readonly ILoggerService _logger;
+    private readonly IAutostartService _autostartService;
+    private readonly IHotkeyService _hotkeyService;
 
     public ObservableCollection<GoalItemViewModel> TodayGoals { get; } = new();
     public ObservableCollection<GoalItemViewModel> MonthGoals { get; } = new();
@@ -53,14 +55,28 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
     [ObservableProperty]
     private bool _carryOverUnfinished = true;
 
+    [ObservableProperty]
+    private bool _autostartEnabled = false;
+
+    [ObservableProperty]
+    private string _hotkeyStatusMessage = "Đang kích hoạt: Ctrl + Alt + G";
+
     private bool _isInitializingSettings = true;
 
-    public MainViewModel(IGoalService goalService, IGoalRepository repository, IClock clock, ILoggerService logger)
+    public MainViewModel(
+        IGoalService goalService,
+        IGoalRepository repository,
+        IClock clock,
+        ILoggerService logger,
+        IAutostartService autostartService,
+        IHotkeyService hotkeyService)
     {
         _goalService = goalService;
         _repository = repository;
         _clock = clock;
         _logger = logger;
+        _autostartService = autostartService;
+        _hotkeyService = hotkeyService;
 
         WeakReferenceMessenger.Default.Register<GoalsChangedMessage>(this);
     }
@@ -90,6 +106,10 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
             SelectedMonitorIndex = settings.MonitorIndex;
             ClickThrough = settings.ClickThrough;
             CarryOverUnfinished = settings.CarryOverUnfinished;
+
+            // Nạp trạng thái tự khởi động cùng Windows và phím tắt
+            AutostartEnabled = _autostartService.IsEnabled();
+            HotkeyStatusMessage = _hotkeyService.StatusMessage;
         }
         catch (Exception ex)
         {
@@ -329,9 +349,29 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
         WeakReferenceMessenger.Default.Send(new SettingsChangedMessage(settings));
     }
 
+    partial void OnAutostartEnabledChanged(bool value)
+    {
+        if (_isInitializingSettings) return;
+
+        if (value)
+        {
+            _autostartService.Enable();
+        }
+        else
+        {
+            _autostartService.Disable();
+        }
+    }
+
+    public void UpdateHotkeyStatus(string message)
+    {
+        HotkeyStatusMessage = message;
+    }
+
     [RelayCommand]
     public void SelectColor(string colorHex)
     {
         TextColor = colorHex;
     }
 }
+

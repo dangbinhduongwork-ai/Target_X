@@ -10,6 +10,10 @@ public class TestClock : IClock
 {
     public DateTime Now { get; set; }
 
+    public DateOnly Today => DateOnly.FromDateTime(Now);
+
+    public string CurrentMonth => Now.ToString("yyyy-MM");
+
     public TestClock(DateTime initialTime)
     {
         Now = initialTime;

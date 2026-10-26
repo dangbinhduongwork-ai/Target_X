@@ -222,4 +222,55 @@ public class GoalServiceTests : IDisposable
         todayGoals = await _service.GetTodayGoalsAsync();
         Assert.Empty(todayGoals);
     }
+
+    [Fact]
+    public async Task AddDailyGoalAsync_TrimsLeadingAndTrailingWhitespace()
+    {
+        var goal = await _service.AddDailyGoalAsync("   Mục tiêu có khoảng trắng thừa   ");
+        Assert.Equal("Mục tiêu có khoảng trắng thừa", goal.Text);
+    }
+
+    [Fact]
+    public async Task AddMonthlyGoalAsync_TrimsWhitespace()
+    {
+        var goal = await _service.AddMonthlyGoalAsync("   Mục tiêu tháng   ");
+        Assert.Equal("Mục tiêu tháng", goal.Text);
+    }
+
+    [Fact]
+    public async Task NonExistentId_ReturnsFalseForUpdateToggleDelete()
+    {
+        var randomId = Guid.NewGuid();
+
+        bool updateResult = await _service.UpdateGoalTextAsync(randomId, "New text");
+        Assert.False(updateResult);
+
+        bool toggleResult = await _service.ToggleGoalAsync(randomId);
+        Assert.False(toggleResult);
+
+        bool deleteResult = await _service.DeleteGoalAsync(randomId);
+        Assert.False(deleteResult);
+    }
+
+    [Fact]
+    public async Task CarryOver_WithMultipleUnfinishedGoals_MovesAllAndPreservesCreatedAt()
+    {
+        _clock.SetTime(new DateTime(2026, 10, 25, 10, 0, 0));
+
+        var g1 = await _service.AddDailyGoalAsync("Nhiệm vụ 1 hôm qua");
+        var g2 = await _service.AddDailyGoalAsync("Nhiệm vụ 2 hôm qua");
+        var g3 = await _service.AddDailyGoalAsync("Nhiệm vụ 3 đã xong");
+        await _service.ToggleGoalAsync(g3.Id);
+
+        _clock.SetTime(new DateTime(2026, 10, 26, 8, 30, 0));
+
+        int moved = await _service.CarryOverUnfinishedGoalsAsync();
+        Assert.Equal(2, moved);
+
+        var todayGoals = await _service.GetTodayGoalsAsync();
+        Assert.Equal(2, todayGoals.Count);
+        Assert.Contains(todayGoals, g => g.Id == g1.Id && g.CreatedAt == g1.CreatedAt);
+        Assert.Contains(todayGoals, g => g.Id == g2.Id && g.CreatedAt == g2.CreatedAt);
+    }
 }
+

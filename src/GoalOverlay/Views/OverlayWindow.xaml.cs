@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Win32;
 using GoalOverlay.Native;
 using GoalOverlay.ViewModels;
@@ -12,7 +13,7 @@ namespace GoalOverlay.Views;
 /// Interaction logic for OverlayWindow.xaml
 /// Cửa sổ HUD Overlay ghim góc trên bên phải màn hình, quản lý Win32 NoActivate/ClickThrough và tự làm mới
 /// </summary>
-public partial class OverlayWindow : Window
+public partial class OverlayWindow : Window, IRecipient<SettingsChangedMessage>
 {
     public OverlayViewModel ViewModel { get; }
 
@@ -47,14 +48,7 @@ public partial class OverlayWindow : Window
         SystemEvents.PowerModeChanged += SystemEvents_PowerModeChanged;
 
         // Lắng nghe thay đổi cài đặt từ MainWindow để Live Preview
-        CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Register<SettingsChangedMessage>(this, (r, msg) =>
-        {
-            if (_hWnd != IntPtr.Zero)
-            {
-                NativeMethods.SetClickThrough(_hWnd, msg.Settings.ClickThrough);
-                Dispatcher.InvokeAsync(RepositionWindow);
-            }
-        });
+        WeakReferenceMessenger.Default.Register<SettingsChangedMessage>(this);
     }
 
     /// <summary>
@@ -74,10 +68,64 @@ public partial class OverlayWindow : Window
 
             // 3. Đưa cửa sổ lên đầu Z-Order
             NativeMethods.SetTopmost(_hWnd);
+
+            // 4. Hook thông điệp Windows để nhận lệnh kích hoạt từ instance thứ 2
+            var source = HwndSource.FromHwnd(_hWnd);
+            source?.AddHook(WndProc);
+
+            // 5. Đăng ký phím tắt toàn cục Ctrl + Alt + G để bật/tắt hiển thị Overlay
+            App.HotkeyService.Register(_hWnd, ToggleVisibility);
         }
         catch (Exception ex)
         {
             App.Logger.Error("Lỗi khi cấu hình cờ Win32 cho OverlayWindow", ex);
+        }
+    }
+
+    /// <summary>
+    /// Xử lý thông điệp broadcast từ SingleInstanceGuard khi người dùng mở ứng dụng lần thứ hai
+    /// </summary>
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (App.ActivateMessageId != 0 && (uint)msg == App.ActivateMessageId)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                App.MainWindowInstance?.ShowAndActivate();
+            });
+            handled = true;
+        }
+        return IntPtr.Zero;
+    }
+
+    /// <summary>
+    /// Bật/tắt hiển thị Overlay HUD khi nhấn Ctrl + Alt + G hoặc từ menu khay hệ thống
+    /// </summary>
+    public void ToggleVisibility()
+    {
+        if (Visibility == Visibility.Visible)
+        {
+            Hide();
+        }
+        else
+        {
+            Show();
+            if (_hWnd != IntPtr.Zero)
+            {
+                NativeMethods.SetTopmost(_hWnd);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Nhận thông điệp thay đổi cài đặt từ MainWindow để cập nhật Live Preview tức thì
+    /// </summary>
+    public void Receive(SettingsChangedMessage message)
+    {
+        if (_hWnd != IntPtr.Zero)
+        {
+            NativeMethods.SetClickThrough(_hWnd, message.Settings.ClickThrough);
+            Dispatcher.InvokeAsync(RepositionWindow);
         }
     }
 
@@ -107,17 +155,17 @@ public partial class OverlayWindow : Window
 
         try
         {
-            int monitorIndex = App.SettingsService.CurrentSettings.MonitorIndex;
-            Rect workArea = NativeMethods.GetMonitorWorkArea(monitorIndex, this);
+            var settings = App.SettingsService.CurrentSettings;
+            Rect workArea = NativeMethods.GetMonitorWorkArea(settings.MonitorIndex, this);
 
-            // Cách mép phải 16px, cách mép trên 16px
-            const double margin = 16.0;
+            Point targetPos = OverlayPositionCalculator.CalculatePosition(
+                workArea,
+                ActualWidth,
+                ActualHeight,
+                settings.Corner);
 
-            double targetLeft = workArea.Right - ActualWidth - margin;
-            double targetTop = workArea.Top + margin;
-
-            Left = Math.Max(workArea.Left, targetLeft);
-            Top = Math.Max(workArea.Top, targetTop);
+            Left = targetPos.X;
+            Top = targetPos.Y;
         }
         catch (Exception ex)
         {
@@ -199,6 +247,15 @@ public partial class OverlayWindow : Window
         _isDisposed = true;
 
         _topmostTimer.Stop();
+
+        // Hủy đăng ký phím tắt toàn cục
+        if (_hWnd != IntPtr.Zero)
+        {
+            App.HotkeyService.Unregister(_hWnd);
+        }
+
+        // Hủy đăng ký nhận tin nhắn Messenger
+        WeakReferenceMessenger.Default.Unregister<SettingsChangedMessage>(this);
 
         // Hủy đăng ký sự kiện tĩnh để tránh rò rỉ tài nguyên
         SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;

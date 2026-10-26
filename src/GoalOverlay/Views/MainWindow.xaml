@@ -138,7 +138,7 @@
         </Grid>
 
         <!-- TabControl Chính -->
-        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0">
+        <TabControl x:Name="MainTabs" Grid.Row="1" Background="Transparent" BorderThickness="0">
 
             <!-- TAB 1: HÔM NAY -->
             <TabItem Header="☀️ Hôm nay">
@@ -545,13 +545,35 @@
                                     </StackPanel>
                                 </CheckBox>
 
+                                <!-- Tự khởi động cùng Windows -->
+                                <CheckBox IsChecked="{Binding AutostartEnabled, Mode=TwoWay}" Margin="0,0,0,12" Cursor="Hand">
+                                    <StackPanel Margin="6,0,0,0">
+                                        <TextBlock Text="Khởi động cùng Windows" FontWeight="SemiBold" Foreground="#F8FAFC"/>
+                                        <TextBlock Text="Tự động chạy GoalOverlay (thu nhỏ vào khay hệ thống) khi bật máy" FontSize="11.5" Foreground="#94A3B8"/>
+                                    </StackPanel>
+                                </CheckBox>
+
                                 <!-- Tự chuyển tiếp Carry-over -->
-                                <CheckBox IsChecked="{Binding CarryOverUnfinished, Mode=TwoWay}" Margin="0,0,0,6" Cursor="Hand">
+                                <CheckBox IsChecked="{Binding CarryOverUnfinished, Mode=TwoWay}" Margin="0,0,0,16" Cursor="Hand">
                                     <StackPanel Margin="6,0,0,0">
                                         <TextBlock Text="Tự chuyển tiếp mục tiêu chưa xong (Carry-over)" FontWeight="SemiBold" Foreground="#F8FAFC"/>
                                         <TextBlock Text="Tự động dời các mục tiêu hàng ngày chưa hoàn thành của hôm qua sang hôm nay" FontSize="11.5" Foreground="#94A3B8"/>
                                     </StackPanel>
                                 </CheckBox>
+
+                                <!-- Phím tắt toàn cục -->
+                                <Border Background="#0F172A" CornerRadius="8" Padding="12" BorderBrush="#334155" BorderThickness="1">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="⌨️ Phím tắt toàn cục:" FontWeight="Bold" Foreground="#60A5FA"/>
+                                            <Border Background="#1E293B" CornerRadius="4" Padding="6,2" Margin="8,0,0,0">
+                                                <TextBlock Text="Ctrl + Alt + G" FontWeight="Bold" Foreground="#F8FAFC" FontSize="11"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock Text="Dùng để ẩn hoặc hiện nhanh cửa sổ Overlay từ bất kỳ ứng dụng nào." FontSize="11.5" Foreground="#94A3B8" Margin="0,4,0,2"/>
+                                        <TextBlock Text="{Binding HotkeyStatusMessage}" FontSize="11" Foreground="#10B981" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
                         </Border>
                     </StackPanel>

@@ -139,4 +139,73 @@ public class JsonGoalRepositoryTests : IDisposable
         Assert.Equal(ScreenCorner.BottomLeft, loaded.Corner);
         Assert.False(loaded.CarryOverUnfinished);
     }
+
+    [Fact]
+    public async Task NonExistentFiles_ReturnsEmptyListAndDefaultSettings()
+    {
+        // Khi thư mục mới tinh chưa có file nào
+        string emptyDir = Path.Combine(Path.GetTempPath(), "GoalOverlay_EmptyTest_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var repo = new JsonGoalRepository(_logger, emptyDir);
+
+            var goals = await repo.LoadGoalsAsync();
+            Assert.NotNull(goals);
+            Assert.Empty(goals);
+
+            var settings = await repo.LoadSettingsAsync();
+            Assert.NotNull(settings);
+            Assert.Equal(0.95, settings.Opacity);
+            Assert.Equal(13.0, settings.FontSize);
+        }
+        finally
+        {
+            if (Directory.Exists(emptyDir)) Directory.Delete(emptyDir, true);
+        }
+    }
+
+    [Fact]
+    public async Task SaveEmptyList_CreatesValidEmptyJsonArray()
+    {
+        await _repository.SaveGoalsAsync(new List<Goal>());
+
+        Assert.True(File.Exists(_repository.GoalsFilePath));
+        string content = await File.ReadAllTextAsync(_repository.GoalsFilePath);
+        Assert.Contains("[]", content);
+
+        var loaded = await _repository.LoadGoalsAsync();
+        Assert.Empty(loaded);
+    }
+
+    [Fact]
+    public async Task Settings_RoundtripsAllFieldsFaithfully()
+    {
+        var settings = new AppSettings
+        {
+            Opacity = 0.65,
+            FontSize = 18.0,
+            TextColor = "#38BDF8",
+            Corner = ScreenCorner.BottomRight,
+            MonitorIndex = 2,
+            ClickThrough = true,
+            HotkeyEnabled = true,
+            AutostartEnabled = true,
+            CarryOverUnfinished = false
+        };
+
+        await _repository.SaveSettingsAsync(settings);
+
+        var loaded = await _repository.LoadSettingsAsync();
+
+        Assert.Equal(0.65, loaded.Opacity);
+        Assert.Equal(18.0, loaded.FontSize);
+        Assert.Equal("#38BDF8", loaded.TextColor);
+        Assert.Equal(ScreenCorner.BottomRight, loaded.Corner);
+        Assert.Equal(2, loaded.MonitorIndex);
+        Assert.True(loaded.ClickThrough);
+        Assert.True(loaded.HotkeyEnabled);
+        Assert.True(loaded.AutostartEnabled);
+        Assert.False(loaded.CarryOverUnfinished);
+    }
 }
+

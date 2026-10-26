@@ -124,7 +124,7 @@
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="🎯" FontSize="15" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="MỤC TIÊU" FontWeight="Bold" FontSize="13" Foreground="#E2E8F0" LetterSpacing="1" VerticalAlignment="Center"/>
+                    <TextBlock Text="MỤC TIÊU" FontWeight="Bold" FontSize="13" Foreground="#E2E8F0" VerticalAlignment="Center"/>
                 </StackPanel>
 
                 <!-- Thanh công cụ góc phải HUD -->
@@ -182,7 +182,7 @@
                 </StackPanel.Style>
 
                 <!-- 1. MỤC TIÊU HÀNG NGÀY (DAILY) -->
-                <TextBlock Text="HÀNG NGÀY" FontSize="10.5" FontWeight="SemiBold" Foreground="#64748B" LetterSpacing="0.8" Margin="0,4,0,6"/>
+                <TextBlock Text="HÀNG NGÀY" FontSize="10.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,0,6"/>
                 <ItemsControl ItemsSource="{Binding DailyGoals}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type models:GoalItem}">
@@ -260,7 +260,7 @@
                 <Separator Background="#242C3D" Margin="0,8,0,8"/>
 
                 <!-- 2. MỤC TIÊU HÀNG THÁNG (MONTHLY) -->
-                <TextBlock Text="HÀNG THÁNG" FontSize="10.5" FontWeight="SemiBold" Foreground="#64748B" LetterSpacing="0.8" Margin="0,0,0,6"/>
+                <TextBlock Text="HÀNG THÁNG" FontSize="10.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,0,0,6"/>
                 <ItemsControl ItemsSource="{Binding MonthlyGoals}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type models:GoalItem}">

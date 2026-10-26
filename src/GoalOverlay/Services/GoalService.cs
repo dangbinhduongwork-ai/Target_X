@@ -69,11 +69,17 @@ public class GoalService : IGoalService
     {
         try
         {
+            string cleanText = (text ?? string.Empty).Trim();
+            if (cleanText.Length > 120)
+            {
+                cleanText = cleanText[..120];
+            }
+
             var allGoals = await _repository.LoadGoalsAsync();
             var newGoal = new Goal
             {
                 Id = Guid.NewGuid(),
-                Text = text,
+                Text = cleanText,
                 Type = GoalType.Daily,
                 Date = date ?? _clock.Today,
                 Month = string.Empty,
@@ -98,11 +104,17 @@ public class GoalService : IGoalService
     {
         try
         {
+            string cleanText = (text ?? string.Empty).Trim();
+            if (cleanText.Length > 120)
+            {
+                cleanText = cleanText[..120];
+            }
+
             var allGoals = await _repository.LoadGoalsAsync();
             var newGoal = new Goal
             {
                 Id = Guid.NewGuid(),
-                Text = text,
+                Text = cleanText,
                 Type = GoalType.Monthly,
                 Date = default,
                 Month = string.IsNullOrWhiteSpace(month) ? _clock.CurrentMonth : month,
@@ -127,6 +139,12 @@ public class GoalService : IGoalService
     {
         try
         {
+            string cleanText = (newText ?? string.Empty).Trim();
+            if (cleanText.Length > 120)
+            {
+                cleanText = cleanText[..120];
+            }
+
             var allGoals = await _repository.LoadGoalsAsync();
             var goal = allGoals.FirstOrDefault(g => g.Id == id);
             if (goal == null)
@@ -135,7 +153,7 @@ public class GoalService : IGoalService
                 return false;
             }
 
-            goal.Text = newText;
+            goal.Text = cleanText;
             await _repository.SaveGoalsAsync(allGoals);
             return true;
         }

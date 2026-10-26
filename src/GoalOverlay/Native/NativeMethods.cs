@@ -24,11 +24,35 @@ public static class NativeMethods
     public const int WS_EX_TRANSPARENT = 0x00000020;
 
     public static readonly IntPtr HWND_TOPMOST = new(-1);
+    public static readonly IntPtr HWND_BROADCAST = (IntPtr)0xffff;
 
     public const uint SWP_NOSIZE = 0x0001;
     public const uint SWP_NOMOVE = 0x0002;
     public const uint SWP_NOACTIVATE = 0x0010;
     public const uint SWP_SHOWWINDOW = 0x0040;
+
+    // Các hằng số phím tắt toàn cục
+    public const uint MOD_ALT = 0x0001;
+    public const uint MOD_CONTROL = 0x0002;
+    public const uint MOD_NOREPEAT = 0x4000;
+    public const uint VK_G = 0x47;
+    public const int WM_HOTKEY = 0x0312;
+    public const int OVERLAY_HOTKEY_ID = 9001;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    public static extern uint RegisterWindowMessage(string lpString);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLong")]
     private static extern int GetWindowLong32(IntPtr hWnd, int nIndex);
@@ -168,13 +192,13 @@ public static class NativeMethods
             int index = Math.Clamp(monitorIndex, 0, monitors.Count - 1);
             var selected = monitors[index];
 
-            // Quy đổi tọa độ vật lý sang đơn vị DIPs của WPF
-            double left = selected.rcWork.Left / dpiX;
-            double top = selected.rcWork.Top / dpiY;
-            double width = (selected.rcWork.Right - selected.rcWork.Left) / dpiX;
-            double height = (selected.rcWork.Bottom - selected.rcWork.Top) / dpiY;
-
-            return new Rect(left, top, width, height);
+            return OverlayPositionCalculator.ConvertPhysicalWorkAreaToDips(
+                selected.rcWork.Left,
+                selected.rcWork.Top,
+                selected.rcWork.Right,
+                selected.rcWork.Bottom,
+                dpiX,
+                dpiY);
         }
 
         // Mặc định fallback về SystemParameters.WorkArea của màn hình chính
