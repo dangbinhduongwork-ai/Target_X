@@ -25,6 +25,14 @@ public interface IGoalService
 
     Task<int> CarryOverUnfinishedGoalsAsync();
 
+    // Quản lý mục tiêu định kỳ lặp lại theo thứ trong tuần
+    Task<IReadOnlyList<RecurringGoal>> GetRecurringGoalsAsync();
+    Task<RecurringGoal> AddRecurringGoalAsync(string text, IEnumerable<DayOfWeek> daysOfWeek, TimeOnly? reminderTime = null);
+    Task<bool> UpdateRecurringGoalAsync(RecurringGoal recurringGoal);
+    Task<bool> ToggleRecurringGoalAsync(Guid id);
+    Task<bool> DeleteRecurringGoalAsync(Guid id);
+    Task<int> EnsureRecurringGoalsForTodayAsync();
+
     Task<AppSettings> GetSettingsAsync();
     Task SaveSettingsAsync(AppSettings settings);
 }

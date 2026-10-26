@@ -141,7 +141,7 @@ public partial class ReminderWindow : Window
 
             if (settings.ReminderSoundEnabled)
             {
-                System.Media.SystemSounds.Exclamation.Play();
+                GoalOverlay.Services.SoundHelper.PlayNotificationChime();
             }
         }
         catch { }

@@ -5,6 +5,7 @@ using System.Windows.Interop;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Win32;
+using GoalOverlay.Models;
 using GoalOverlay.Native;
 using GoalOverlay.ViewModels;
 
@@ -95,12 +96,97 @@ public partial class OverlayWindow : Window, IRecipient<SettingsChangedMessage>
         }
     }
 
+    #region Sự kiện kéo & thả nút tròn nổi (AssistiveTouch) khi thu nhỏ
+
+    private Point _dragStartPoint;
+    private bool _isDraggingCollapsed;
+    private bool _hasDragged;
+
+    /// <summary>
+    /// Ghi nhận tọa độ chuột khi nhấn nút tròn nổi để phân biệt giữa Click và Kéo (Drag)
+    /// </summary>
+    private void CollapsedHomeButton_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _dragStartPoint = e.GetPosition(this);
+        _isDraggingCollapsed = false;
+        _hasDragged = false;
+    }
+
+    /// <summary>
+    /// Khi chuột di chuyển vượt ngưỡng kéo: kích hoạt DragMove() để người dùng kéo nút tròn quanh màn hình
+    /// </summary>
+    private void CollapsedHomeButton_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton == MouseButtonState.Pressed && !_isDraggingCollapsed)
+        {
+            Point currentPos = e.GetPosition(this);
+            Vector diff = _dragStartPoint - currentPos;
+
+            if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
+            {
+                _isDraggingCollapsed = true;
+                _hasDragged = true;
+
+                try
+                {
+                    DragMove();
+                }
+                catch
+                {
+                    // Tránh crash nếu người dùng nhả chuột quá nhanh
+                }
+                finally
+                {
+                    _isDraggingCollapsed = false;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Khi nhả chuột: nếu không phải thao tác kéo mà là Click đơn thuần thì mở rộng HUD về vị trí ban đầu
+    /// </summary>
+    private void CollapsedHomeButton_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_hasDragged)
+        {
+            e.Handled = true;
+            ExpandToOriginalPosition();
+        }
+
+        _isDraggingCollapsed = false;
+        _hasDragged = false;
+    }
+
+    /// <summary>
+    /// Mở rộng lại HUD và căn chỉnh chính xác trở lại vị trí góc màn hình ban đầu
+    /// </summary>
+    private void ExpandToOriginalPosition()
+    {
+        ViewModel.ToggleCollapseCommand.Execute(null);
+
+        // Chờ layout hoàn tất để lấy kích thước mở rộng rồi đưa HUD trở về đúng góc màn hình ban đầu
+        Dispatcher.InvokeAsync(() =>
+        {
+            RepositionWindow();
+            NativeMethods.SetTopmost(_hWnd);
+        }, DispatcherPriority.Loaded);
+    }
+
+    #endregion
+
     private void HeaderTitle_MouseDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ClickCount == 2)
         {
             App.MainWindowInstance?.ShowAndActivate();
         }
+    }
+
+    private void EmptyState_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        App.MainWindowInstance?.ShowAndActivate();
     }
 
     private void OpenManagement_Click(object sender, RoutedEventArgs e)
@@ -206,7 +292,12 @@ public partial class OverlayWindow : Window, IRecipient<SettingsChangedMessage>
     /// <summary>
     /// Tự động căn chỉnh vị trí ở góc trên bên phải của màn hình đã chọn, cách mép 16px
     /// </summary>
-    public void RepositionWindow(AppSettings? customSettings = null)
+    public void RepositionWindow() => RepositionWindow(null);
+
+    /// <summary>
+    /// Tự động căn chỉnh vị trí ở góc trên bên phải của màn hình đã chọn, cách mép 16px
+    /// </summary>
+    public void RepositionWindow(AppSettings? customSettings)
     {
         if (_hWnd == IntPtr.Zero || ActualWidth <= 0 || ActualHeight <= 0)
         {
@@ -326,7 +417,7 @@ public partial class OverlayWindow : Window, IRecipient<SettingsChangedMessage>
     /// </summary>
     private void SystemEvents_DisplaySettingsChanged(object? sender, EventArgs e)
     {
-        Dispatcher.InvokeAsync(RepositionWindow);
+        Dispatcher.InvokeAsync(() => RepositionWindow());
     }
 
     /// <summary>

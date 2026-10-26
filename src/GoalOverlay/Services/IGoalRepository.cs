@@ -16,6 +16,9 @@ public interface IGoalRepository
     Task<List<Goal>> LoadGoalsAsync();
     Task SaveGoalsAsync(IEnumerable<Goal> goals);
 
+    Task<List<RecurringGoal>> LoadRecurringGoalsAsync();
+    Task SaveRecurringGoalsAsync(IEnumerable<RecurringGoal> recurringGoals);
+
     Task<AppSettings> LoadSettingsAsync();
     Task SaveSettingsAsync(AppSettings settings);
 }

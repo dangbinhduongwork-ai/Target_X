@@ -34,6 +34,11 @@ public class Goal
     /// </summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// ID của mục tiêu lặp lại nếu mục tiêu này được tự động sinh ra từ RecurringGoal
+    /// </summary>
+    public Guid? RecurringGoalId { get; set; }
+
     // =========================================================================
     // V1.1 Giai đoạn 8: Mở rộng Model Hẹn giờ & Nhắc nhở (Reminders)
     // Các trường đều có giá trị mặc định tương thích ngược 100% với file JSON V1.0

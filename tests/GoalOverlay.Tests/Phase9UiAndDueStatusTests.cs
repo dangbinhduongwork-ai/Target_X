@@ -318,4 +318,85 @@ public class Phase9UiAndDueStatusTests : IDisposable
         Assert.Equal("Đúng giờ mới nhắc", earlyConverter.Convert(0, typeof(string), null!, System.Globalization.CultureInfo.InvariantCulture));
         Assert.Equal("Trước 10 phút", earlyConverter.Convert(10, typeof(string), null!, System.Globalization.CultureInfo.InvariantCulture));
     }
+
+    [Fact]
+    public void OverlayViewModel_DefaultState_IsExpanded()
+    {
+        var overlayVm = new OverlayViewModel(_goalService, _clock, _logger);
+        Assert.False(overlayVm.IsCollapsed);
+        Assert.True(overlayVm.IsExpanded);
+    }
+
+    [Fact]
+    public void OverlayViewModel_ToggleCollapse_TogglesCorrectly()
+    {
+        var overlayVm = new OverlayViewModel(_goalService, _clock, _logger);
+
+        // Ban đầu là bật ra (expanded)
+        Assert.False(overlayVm.IsCollapsed);
+        Assert.True(overlayVm.IsExpanded);
+
+        // Bấm thu nhỏ (collapsed như iPhone Home button)
+        overlayVm.ToggleCollapseCommand.Execute(null);
+        Assert.True(overlayVm.IsCollapsed);
+        Assert.False(overlayVm.IsExpanded);
+
+        // Bấm mở rộng lại như cũ
+        overlayVm.ToggleCollapseCommand.Execute(null);
+        Assert.False(overlayVm.IsCollapsed);
+        Assert.True(overlayVm.IsExpanded);
+    }
+
+    [Fact]
+    public void SoundHelper_PlayNotificationChime_DoesNotThrow()
+    {
+        // Kiểm tra SoundHelper hoạt động không ném biệt lệ và không crash
+        SoundHelper.PlayNotificationChime();
+    }
+
+    [Fact]
+    public async Task OverlayViewModel_WhenNoGoals_HasNoGoalsIsTrue_AndNoSampleGoalsSeeded()
+    {
+        var overlayVm = new OverlayViewModel(_goalService, _clock, _logger);
+        await overlayVm.LoadGoalsCommand.ExecuteAsync(null);
+
+        // Khi hoàn toàn không có mục tiêu, không được tự seed dữ liệu mẫu
+        Assert.Empty(overlayVm.TodayGoals);
+        Assert.Empty(overlayVm.MonthGoals);
+        Assert.False(overlayVm.HasGoals);
+        Assert.True(overlayVm.HasNoGoals);
+        Assert.False(overlayVm.HasTodayGoals);
+        Assert.False(overlayVm.HasMonthGoals);
+        Assert.False(overlayVm.ShowSeparator);
+    }
+
+    [Fact]
+    public async Task OverlayViewModel_WhenGoalsExist_HasGoalsIsTrue_AndSeparatorVisibilityCorrect()
+    {
+        var overlayVm = new OverlayViewModel(_goalService, _clock, _logger);
+
+        // 1. Chỉ có mục tiêu hôm nay
+        await _goalService.AddDailyGoalAsync("Tập thể dục 30 phút");
+        await overlayVm.LoadGoalsCommand.ExecuteAsync(null);
+
+        Assert.Single(overlayVm.TodayGoals);
+        Assert.Empty(overlayVm.MonthGoals);
+        Assert.True(overlayVm.HasGoals);
+        Assert.False(overlayVm.HasNoGoals);
+        Assert.True(overlayVm.HasTodayGoals);
+        Assert.False(overlayVm.HasMonthGoals);
+        Assert.False(overlayVm.ShowSeparator); // Chưa hiện separator vì chưa có mục tiêu tháng
+
+        // 2. Thêm mục tiêu tháng
+        await _goalService.AddMonthlyGoalAsync("Đọc sách quản trị");
+        await overlayVm.LoadGoalsCommand.ExecuteAsync(null);
+
+        Assert.Single(overlayVm.TodayGoals);
+        Assert.Single(overlayVm.MonthGoals);
+        Assert.True(overlayVm.HasGoals);
+        Assert.False(overlayVm.HasNoGoals);
+        Assert.True(overlayVm.HasTodayGoals);
+        Assert.True(overlayVm.HasMonthGoals);
+        Assert.True(overlayVm.ShowSeparator); // Đã có cả 2 -> hiện separator
+    }
 }

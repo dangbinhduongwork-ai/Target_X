@@ -92,76 +92,93 @@
         </Style>
     </Window.Resources>
 
-    <!-- Khung Card HUD bo góc bán trong suốt -->
-    <Border Margin="12"
-            MinWidth="260"
-            MaxWidth="380"
-            Background="#D90F172A"
-            Opacity="{Binding Opacity}"
-            CornerRadius="14"
-            BorderBrush="#334155"
-            BorderThickness="1.2"
-            Effect="{StaticResource CardDropShadow}"
-            MouseLeftButtonDown="Border_MouseLeftButtonDown"
-            ToolTip="Nhấp đúp để mở Quản lý mục tiêu | Chuột phải để mở menu tùy chọn">
-        <Border.ContextMenu>
-            <ContextMenu Style="{StaticResource HudContextMenuStyle}">
-                <MenuItem Header="🎯 Mở quản lý mục tiêu (Ctrl+Alt+M)" Click="OpenManagement_Click"/>
-                <MenuItem Header="➕ Thêm mục tiêu hôm nay" Click="AddDailyGoal_Click"/>
-                <MenuItem Header="📅 Thêm mục tiêu tháng này" Click="AddMonthlyGoal_Click"/>
-                <MenuItem Header="⚙️ Cài đặt giao diện" Click="OpenSettings_Click"/>
-                <Separator Background="#334155"/>
-                <MenuItem Header="👁️ Ẩn Overlay (Ctrl+Alt+G)" Click="ToggleOverlay_Click"/>
-                <MenuItem Header="❌ Thoát ứng dụng" Click="ExitApp_Click"/>
-            </ContextMenu>
-        </Border.ContextMenu>
+    <Grid Margin="12">
+        <!-- 1. GIAO DIỆN MỞ RỘNG (EXPANDED HUD - CHẾ ĐỘ MẶC ĐỊNH) -->
+        <Border x:Name="ExpandedCard"
+                Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}"
+                MinWidth="260"
+                MaxWidth="380"
+                Background="#D90F172A"
+                Opacity="{Binding Opacity}"
+                CornerRadius="14"
+                BorderBrush="#334155"
+                BorderThickness="1.2"
+                Effect="{StaticResource CardDropShadow}"
+                MouseLeftButtonDown="Border_MouseLeftButtonDown"
+                ToolTip="Nhấp đúp để mở Quản lý mục tiêu | Chuột phải để mở menu tùy chọn">
+            <Border.ContextMenu>
+                <ContextMenu Style="{StaticResource HudContextMenuStyle}">
+                    <MenuItem Header="🎯 Mở quản lý mục tiêu (Ctrl+Alt+M)" Click="OpenManagement_Click"/>
+                    <MenuItem Header="➕ Thêm mục tiêu hôm nay" Click="AddDailyGoal_Click"/>
+                    <MenuItem Header="📅 Thêm mục tiêu tháng này" Click="AddMonthlyGoal_Click"/>
+                    <MenuItem Header="⚙️ Cài đặt giao diện" Click="OpenSettings_Click"/>
+                    <Separator Background="#334155"/>
+                    <MenuItem Header="➖ Thu nhỏ thành nút tròn nổi" Command="{Binding ToggleCollapseCommand}"/>
+                    <MenuItem Header="👁️ Ẩn Overlay (Ctrl+Alt+G)" Click="ToggleOverlay_Click"/>
+                    <MenuItem Header="❌ Thoát ứng dụng" Click="ExitApp_Click"/>
+                </ContextMenu>
+            </Border.ContextMenu>
 
-        <Grid Margin="14,12,14,14">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+            <Grid Margin="14,12,14,14">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-            <!-- Tiêu đề HUD kèm nút Quản lý & Thêm mục tiêu -->
-            <Grid Grid.Row="0" Margin="0,0,0,10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+                <!-- Tiêu đề HUD kèm nút Quản lý & Thêm mục tiêu & Thu nhỏ -->
+                <Grid Grid.Row="0" Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Cursor="Hand"
-                            MouseDown="HeaderTitle_MouseDown"
-                            ToolTip="Nhấp đúp chuột để mở Quản lý mục tiêu">
-                    <TextBlock Text="🎯" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="MỤC TIÊU" FontWeight="Bold" FontSize="12.5" Foreground="#60A5FA"
-                               Effect="{StaticResource TextDropShadow}" VerticalAlignment="Center"/>
-                </StackPanel>
-
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <!-- Nút Thêm mục tiêu / Mở quản lý -->
-                    <Button Style="{StaticResource HeaderIconButton}"
-                            ToolTip="Mở Quản lý mục tiêu (Ctrl+Alt+M)"
-                            Click="OpenManagement_Click">
+                    <StackPanel Grid.Column="0" Orientation="Vertical" VerticalAlignment="Center" Cursor="Hand"
+                                MouseDown="HeaderTitle_MouseDown"
+                                ToolTip="Nhấp đúp chuột hoặc bấm Ctrl+Alt+M để mở Quản lý mục tiêu">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="➕" FontSize="10" Margin="0,0,3,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Thêm" FontSize="11" FontWeight="SemiBold" Foreground="#93C5FD" VerticalAlignment="Center"/>
+                            <TextBlock Text="🎯" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="MỤC TIÊU" FontWeight="Bold" FontSize="12.5" Foreground="#60A5FA"
+                                       Effect="{StaticResource TextDropShadow}" VerticalAlignment="Center"/>
                         </StackPanel>
-                    </Button>
+                        <TextBlock Text="Ctrl + Alt + M để thêm/sửa" FontSize="9.5" Foreground="#64748B" Margin="20,1,0,0"
+                                   Effect="{StaticResource TextDropShadow}"/>
+                    </StackPanel>
 
-                    <!-- Nút Cài đặt -->
-                    <Button Style="{StaticResource HeaderIconButton}"
-                            Margin="5,0,0,0"
-                            ToolTip="Cài đặt HUD"
-                            Click="OpenSettings_Click">
-                        <TextBlock Text="⚙️" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
-                    </Button>
-                </StackPanel>
-            </Grid>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Nút Thêm mục tiêu / Mở quản lý -->
+                        <Button Style="{StaticResource HeaderIconButton}"
+                                ToolTip="Mở Quản lý mục tiêu (Ctrl+Alt+M)"
+                                Click="OpenManagement_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="➕" FontSize="10" Margin="0,0,3,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Thêm" FontSize="11" FontWeight="SemiBold" Foreground="#93C5FD" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Nút Cài đặt -->
+                        <Button Style="{StaticResource HeaderIconButton}"
+                                Margin="5,0,0,0"
+                                ToolTip="Cài đặt HUD"
+                                Click="OpenSettings_Click">
+                            <TextBlock Text="⚙️" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                        </Button>
+
+                        <!-- Nút Thu nhỏ thành nút tròn nổi iPhone Home -->
+                        <Button Style="{StaticResource HeaderIconButton}"
+                                Margin="5,0,0,0"
+                                ToolTip="Thu nhỏ thành nút tròn nổi (như phím Home iPhone)"
+                                Command="{Binding ToggleCollapseCommand}">
+                            <TextBlock Text="➖" FontSize="10" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                        </Button>
+                    </StackPanel>
+                </Grid>
 
             <!-- 1. KHỐI HÔM NAY (kèm tiến độ x/y xong) -->
-            <StackPanel Grid.Row="1" Margin="0,0,0,8">
+            <StackPanel Grid.Row="1" Margin="0,0,0,8"
+                        Visibility="{Binding HasTodayGoals, Converter={StaticResource BoolToVis}}">
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                     <TextBlock Text="HÔM NAY" FontSize="11" FontWeight="Bold" Foreground="#94A3B8"
                                Effect="{StaticResource TextDropShadow}"/>
@@ -241,10 +258,12 @@
             </StackPanel>
 
             <!-- Đường phân cách nhẹ giữa 2 khối -->
-            <Separator Grid.Row="2" Background="#1E293B" Margin="0,4,0,8"/>
+            <Separator Grid.Row="2" Background="#1E293B" Margin="0,4,0,8"
+                       Visibility="{Binding ShowSeparator, Converter={StaticResource BoolToVis}}"/>
 
             <!-- 2. KHỐI THÁNG NÀY (kèm tiến độ x/y xong) -->
-            <StackPanel Grid.Row="3">
+            <StackPanel Grid.Row="3"
+                        Visibility="{Binding HasMonthGoals, Converter={StaticResource BoolToVis}}">
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                     <TextBlock Text="THÁNG NÀY" FontSize="11" FontWeight="Bold" Foreground="#94A3B8"
                                Effect="{StaticResource TextDropShadow}"/>
@@ -320,6 +339,81 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </StackPanel>
+
+            <!-- Dòng chữ bé ở chính giữa khi không có mục tiêu gì -->
+            <Border Grid.Row="1" Grid.RowSpan="3"
+                    Visibility="{Binding HasNoGoals, Converter={StaticResource BoolToVis}}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Padding="12,18"
+                    Cursor="Hand"
+                    MouseDown="EmptyState_MouseDown"
+                    ToolTip="Nhấp chuột hoặc bấm Ctrl+Alt+M để mở Quản lý mục tiêu">
+                <TextBlock Text="Hiện tại đang không có mục tiêu gì"
+                           FontSize="11.5"
+                           Foreground="#94A3B8"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           TextAlignment="Center"
+                           Effect="{StaticResource TextDropShadow}"/>
+            </Border>
+
+            <!-- 3. DÒNG CHỮ NHỎ HƯỚNG DẪN MỞ GIAO DIỆN THÊM MỤC TIÊU -->
+            <Border Grid.Row="4" Margin="0,10,0,0" Padding="0,6,0,0" BorderBrush="#253347" BorderThickness="0,1,0,0">
+                <TextBlock Text="⌨️ Nhấn Ctrl + Alt + M để mở thêm mục tiêu"
+                           FontSize="10"
+                           Foreground="#64748B"
+                           HorizontalAlignment="Center"
+                           Effect="{StaticResource TextDropShadow}"/>
+            </Border>
         </Grid>
     </Border>
+
+        <!-- 2. NÚT TRÒN NỔI IPHONE HOME (ASSISTIVETOUCH) KHI THU NHỎ -->
+        <Border x:Name="CollapsedCard"
+                Visibility="{Binding IsCollapsed, Converter={StaticResource BoolToVis}}"
+                Width="48" Height="48"
+                CornerRadius="24"
+                Opacity="{Binding Opacity}"
+                BorderThickness="1.5"
+                Effect="{StaticResource CardDropShadow}"
+                Cursor="Hand"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                PreviewMouseLeftButtonDown="CollapsedHomeButton_PreviewMouseLeftButtonDown"
+                PreviewMouseMove="CollapsedHomeButton_PreviewMouseMove"
+                PreviewMouseLeftButtonUp="CollapsedHomeButton_PreviewMouseLeftButtonUp"
+                ToolTip="🎯 GoalOverlay (Đang thu nhỏ)&#x0a;👉 Bấm chuột trái: Mở rộng về vị trí ban đầu&#x0a;🖐️ Giữ &amp; Kéo: Di chuyển tự do trên màn hình&#x0a;🖱️ Chuột phải: Menu tùy chọn">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="#E60F172A"/>
+                    <Setter Property="BorderBrush" Value="#38BDF8"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#F21E293B"/>
+                            <Setter Property="BorderBrush" Value="#67E8F9"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Border.ContextMenu>
+                <ContextMenu Style="{StaticResource HudContextMenuStyle}">
+                    <MenuItem Header="📖 Mở rộng Overlay" Command="{Binding ToggleCollapseCommand}"/>
+                    <MenuItem Header="🎯 Quản lý mục tiêu (Ctrl+Alt+M)" Click="OpenManagement_Click"/>
+                    <MenuItem Header="⚙️ Cài đặt giao diện" Click="OpenSettings_Click"/>
+                    <Separator Background="#334155"/>
+                    <MenuItem Header="👁️ Ẩn Overlay (Ctrl+Alt+G)" Click="ToggleOverlay_Click"/>
+                    <MenuItem Header="❌ Thoát ứng dụng" Click="ExitApp_Click"/>
+                </ContextMenu>
+            </Border.ContextMenu>
+            <Grid HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                <!-- Vòng tròn phụ phong cách phím Home / AssistiveTouch -->
+                <Border Width="34" Height="34" CornerRadius="17"
+                        BorderBrush="#4038BDF8" BorderThickness="1.2"
+                        Background="#1A38BDF8"/>
+                <TextBlock Text="🎯" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Effect="{StaticResource TextDropShadow}"/>
+            </Grid>
+        </Border>
+    </Grid>
 </Window>

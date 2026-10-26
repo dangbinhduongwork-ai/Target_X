@@ -17,4 +17,9 @@ public class GoalsDocument
     /// Danh sách toàn bộ mục tiêu
     /// </summary>
     public List<Goal> Goals { get; set; } = new();
+
+    /// <summary>
+    /// Danh sách toàn bộ mục tiêu định kỳ lặp lại theo thứ trong tuần
+    /// </summary>
+    public List<RecurringGoal> RecurringGoals { get; set; } = new();
 }

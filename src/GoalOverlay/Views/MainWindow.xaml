@@ -8,17 +8,29 @@
         xmlns:converters="clr-namespace:GoalOverlay.Views.Converters"
         mc:Ignorable="d"
         Title="GoalOverlay - Quản Lý Mục Tiêu"
-        Height="640" Width="740"
-        MinHeight="520" MinWidth="620"
+        Height="660" Width="760"
+        MinHeight="540" MinWidth="640"
         WindowStartupLocation="CenterScreen"
         Background="#0B0F19"
         Foreground="#F8FAFC">
 
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="38"
+                      ResizeBorderThickness="6"
+                      GlassFrameThickness="0"
+                      CornerRadius="0"/>
+    </WindowChrome.WindowChrome>
+
     <Window.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-        <converters:RepeatMinutesConverter x:Key="RepeatConverter"/>
-        <converters:EarlyMinutesConverter x:Key="EarlyConverter"/>
-        <converters:StringNotEmptyToVisibilityConverter x:Key="StringNotEmptyToVis"/>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/GoalOverlay;component/Themes/DarkTheme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+            <converters:RepeatMinutesConverter x:Key="RepeatConverter"/>
+            <converters:EarlyMinutesConverter x:Key="EarlyConverter"/>
+            <converters:StringNotEmptyToVisibilityConverter x:Key="StringNotEmptyToVis"/>
 
         <!-- Nút thêm hiện đại -->
         <Style x:Key="PrimaryButton" TargetType="Button">
@@ -121,9 +133,104 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Style nút trên thanh tiêu đề tùy biến -->
+        <Style x:Key="TitleBarButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#1E293B"/>
+                                <Setter Property="Foreground" Value="#F8FAFC"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#334155"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TitleBarCloseButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#EF4444"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#DC2626"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        </ResourceDictionary>
     </Window.Resources>
 
-    <Grid Margin="24">
+    <Grid Background="#0B0F19">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="38"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 1. THANH TIÊU ĐỀ DARK HIỆN ĐẠI (CHUYÊN NGHIỆP) -->
+        <Border Grid.Row="0" Background="#0F172A" BorderBrush="#1E293B" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Bên trái: Logo + Tiêu đề + Huy hiệu phiên bản -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                    <TextBlock Text="🎯" FontSize="15" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="GoalOverlay" FontWeight="Bold" FontSize="13" Foreground="#F8FAFC" VerticalAlignment="Center"/>
+                    <TextBlock Text="— Quản Lý Mục Tiêu" FontSize="12" Foreground="#94A3B8" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                    <Border Background="#1E293B" BorderBrush="#334155" BorderThickness="1" CornerRadius="4" Padding="6,1" Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="v1.1" FontSize="10.5" FontWeight="SemiBold" Foreground="#38BDF8"/>
+                    </Border>
+                </StackPanel>
+
+                <!-- Bên phải: 3 nút Thu nhỏ, Phóng to, Đóng -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource TitleBarButton}" Content="—" ToolTip="Thu nhỏ (Minimize)" Click="TitleBar_Minimize_Click"/>
+                    <Button x:Name="BtnTitleBarMax" Style="{StaticResource TitleBarButton}" Content="⬜" ToolTip="Phóng to (Maximize)" Click="TitleBar_Maximize_Click"/>
+                    <Button Style="{StaticResource TitleBarCloseButton}" Content="✕" ToolTip="Đóng về khay hệ thống" Click="TitleBar_Close_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 2. NỘI DUNG CHÍNH CỦA CỬA SỔ -->
+        <Grid Grid.Row="1" Margin="24,18,24,24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -155,39 +262,81 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Khung nhập mục tiêu mới (Text + TimePickerBox + Thêm) -->
-                    <Border Grid.Row="0" Background="#111827" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="12" Padding="12" Margin="0,0,0,10">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
+                    <!-- Khung nhập mục tiêu mới (Text + TimePickerBox + Thêm + Tùy chọn lặp lại theo thứ) -->
+                    <Border Grid.Row="0" Background="#111827" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="12" Padding="14" Margin="0,0,0,10">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
 
-                            <TextBox x:Name="TxtDailyInput"
-                                     Text="{Binding NewDailyText, UpdateSourceTrigger=PropertyChanged}"
-                                     MaxLength="120"
-                                     Background="#1E293B"
-                                     Foreground="#F8FAFC"
-                                     CaretBrush="#60A5FA"
-                                     BorderBrush="#334155"
-                                     BorderThickness="1"
-                                     FontSize="13.5"
-                                     Padding="12,10"
-                                     VerticalContentAlignment="Center"
-                                     KeyDown="TxtDailyInput_KeyDown"/>
+                                <TextBox x:Name="TxtDailyInput"
+                                         Text="{Binding NewDailyText, UpdateSourceTrigger=PropertyChanged}"
+                                         MaxLength="120"
+                                         Background="#1E293B"
+                                         Foreground="#F8FAFC"
+                                         CaretBrush="#60A5FA"
+                                         BorderBrush="#334155"
+                                         BorderThickness="1"
+                                         FontSize="13.5"
+                                         Padding="12,10"
+                                         VerticalContentAlignment="Center"
+                                         KeyDown="TxtDailyInput_KeyDown"/>
 
-                            <!-- Chọn giờ hẹn tùy chọn -->
-                            <controls:TimePickerBox Grid.Column="1"
-                                                    SelectedTime="{Binding NewDailyTime, Mode=TwoWay}"
-                                                    Margin="8,0,0,0"/>
+                                <!-- Chọn giờ hẹn tùy chọn -->
+                                <controls:TimePickerBox Grid.Column="1"
+                                                        SelectedTime="{Binding NewDailyTime, Mode=TwoWay}"
+                                                        Margin="8,0,0,0"/>
 
-                            <Button Grid.Column="2"
-                                    Content="+ Thêm"
-                                    Style="{StaticResource PrimaryButton}"
-                                    Command="{Binding AddDailyGoalCommand}"
-                                    Margin="8,0,0,0"/>
-                        </Grid>
+                                <Button Grid.Column="2"
+                                        Content="+ Thêm"
+                                        Style="{StaticResource PrimaryButton}"
+                                        Command="{Binding AddDailyGoalCommand}"
+                                        Margin="8,0,0,0"/>
+                            </Grid>
+
+                            <!-- Hàng tùy chọn Lặp lại theo thứ trong tuần -->
+                            <Border Margin="0,10,0,0" Padding="0,10,0,0" BorderBrush="#1E293B" BorderThickness="0,1,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- 7 Nút chọn thứ -->
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="🔁 Lặp lại thứ:" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <ToggleButton Style="{StaticResource DayToggleButtonStyle}" Content="T2" ToolTip="Lặp lại vào Thứ Hai" IsChecked="{Binding DayMon, Mode=TwoWay}"/>
+                                        <ToggleButton Style="{StaticResource DayToggleButtonStyle}" Content="T3" ToolTip="Lặp lại vào Thứ Ba" IsChecked="{Binding DayTue, Mode=TwoWay}"/>
+                                        <ToggleButton Style="{StaticResource DayToggleButtonStyle}" Content="T4" ToolTip="Lặp lại vào Thứ Tư" IsChecked="{Binding DayWed, Mode=TwoWay}"/>
+                                        <ToggleButton Style="{StaticResource DayToggleButtonStyle}" Content="T5" ToolTip="Lặp lại vào Thứ Năm" IsChecked="{Binding DayThu, Mode=TwoWay}"/>
+                                        <ToggleButton Style="{StaticResource DayToggleButtonStyle}" Content="T6" ToolTip="Lặp lại vào Thứ Sáu" IsChecked="{Binding DayFri, Mode=TwoWay}"/>
+                                        <ToggleButton Style="{StaticResource DayToggleButtonStyle}" Content="T7" ToolTip="Lặp lại vào Thứ Bảy" IsChecked="{Binding DaySat, Mode=TwoWay}"/>
+                                        <ToggleButton Style="{StaticResource DayToggleButtonStyle}" Content="CN" ToolTip="Lặp lại vào Chủ Nhật" IsChecked="{Binding DaySun, Mode=TwoWay}"/>
+                                    </StackPanel>
+
+                                    <!-- Các nút chọn nhanh -->
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+                                        <Button Content="Cả tuần" Style="{StaticResource SmallActionButton}" Command="{Binding SelectAllDaysCommand}" Margin="0,0,4,0"/>
+                                        <Button Content="T2-T6" Style="{StaticResource SmallActionButton}" Command="{Binding SelectWeekdaysCommand}" Margin="0,0,4,0"/>
+                                        <Button Content="Cuối tuần" Style="{StaticResource SmallActionButton}" Command="{Binding SelectWeekendCommand}" Margin="0,0,4,0"/>
+                                        <Button Content="Xóa" Style="{StaticResource SmallActionButton}" Command="{Binding ClearDaysCommand}"/>
+                                    </StackPanel>
+
+                                    <!-- Nút xem tab quản lý lặp lại -->
+                                    <Button Grid.Column="2"
+                                            Content="📋 Quản lý ({Binding RecurringGoals.Count}) ➔"
+                                            Style="{StaticResource SmallActionButton}"
+                                            Foreground="#38BDF8"
+                                            Click="NavToRecurringTab_Click"
+                                            VerticalAlignment="Center"
+                                            ToolTip="Xem và quản lý tất cả mục tiêu lặp lại hàng tuần"/>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
                     </Border>
 
                     <!-- Cảnh báo nếu chọn giờ đã qua trong hôm nay -->
@@ -262,17 +411,25 @@
                                               CommandParameter="{Binding}"
                                               Margin="0,0,10,0"/>
 
-                                    <!-- Cột Badge giờ hẹn dạng "20:30" -->
-                                    <Border Grid.Column="2"
-                                            Visibility="{Binding HasDueTime, Converter={StaticResource BoolToVis}}"
-                                            Background="#1E293B" BorderBrush="{Binding StatusColor}" BorderThickness="1"
-                                            CornerRadius="4" Padding="5,2" Margin="0,0,10,0" VerticalAlignment="Center">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="🕒" FontSize="10" Margin="0,0,3,0" Foreground="{Binding StatusColor}" VerticalAlignment="Center"/>
-                                            <TextBlock Text="{Binding DueTimeString}" FontSize="11.5" FontWeight="SemiBold"
-                                                       Foreground="{Binding StatusColor}" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </Border>
+                                    <!-- Cột Badge giờ hẹn & Huy hiệu lặp lại -->
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                                        <Border Visibility="{Binding HasDueTime, Converter={StaticResource BoolToVis}}"
+                                                Background="#1E293B" BorderBrush="{Binding StatusColor}" BorderThickness="1"
+                                                CornerRadius="4" Padding="5,2" Margin="0,0,6,0" VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="🕒" FontSize="10" Margin="0,0,3,0" Foreground="{Binding StatusColor}" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding DueTimeString}" FontSize="11.5" FontWeight="SemiBold"
+                                                           Foreground="{Binding StatusColor}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Visibility="{Binding IsRecurring, Converter={StaticResource BoolToVis}}"
+                                                Background="#0F172A" BorderBrush="#2563EB" BorderThickness="1"
+                                                CornerRadius="4" Padding="5,2" VerticalAlignment="Center"
+                                                ToolTip="Mục tiêu lặp lại tự động theo các ngày trong tuần">
+                                            <TextBlock Text="🔁 Lặp lại" FontSize="10.5" FontWeight="SemiBold" Foreground="#60A5FA"/>
+                                        </Border>
+                                    </StackPanel>
 
                                     <!-- Hiển thị text mục tiêu bình thường (Nhấp đúp chuột để sửa) -->
                                     <TextBlock Grid.Column="3"
@@ -393,7 +550,7 @@
                             <!-- Chọn ngày hạn chót -->
                             <DatePicker Grid.Column="1"
                                         SelectedDate="{Binding NewMonthlyDueDate, Mode=TwoWay}"
-                                        Width="110"
+                                        Width="125"
                                         Margin="8,0,0,0"
                                         VerticalAlignment="Center"
                                         ToolTip="Chọn ngày hạn chót trong tháng"/>
@@ -544,9 +701,10 @@
 
                                         <DatePicker Grid.Column="1"
                                                     SelectedDate="{Binding EditDueDate, Mode=TwoWay}"
-                                                    Width="105"
+                                                    Width="120"
                                                     Margin="6,0,0,0"
-                                                    VerticalAlignment="Center"/>
+                                                    VerticalAlignment="Center"
+                                                    ToolTip="Chọn ngày hạn chót"/>
 
                                         <controls:TimePickerBox Grid.Column="2"
                                                                 SelectedTime="{Binding EditDueTime, Mode=TwoWay}"
@@ -578,52 +736,226 @@
                 </Grid>
             </TabItem>
 
-            <!-- TAB 3: CÀI ĐẶT (LIVE PREVIEW) -->
+            <!-- TAB 3: MỤC TIÊU LẶP LẠI THEO TUẦN -->
+            <TabItem Header="🔁 Lặp lại tuần">
+                <Grid Margin="0,16,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Khung thêm mục tiêu lặp lại chuyên dụng -->
+                    <Border Grid.Row="0" Background="#111827" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="12" Padding="16" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="🔁 Thêm Mục tiêu Lặp lại Mới" FontWeight="Bold" FontSize="14" Foreground="#38BDF8" Margin="0,0,0,4"/>
+                            <TextBlock Text="Mục tiêu sẽ tự động xuất hiện trên màn hình Hôm nay và Overlay HUD vào các thứ đã chọn trong tuần." FontSize="12" Foreground="#94A3B8" Margin="0,0,0,12"/>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox x:Name="TxtRecurringInput"
+                                         Text="{Binding NewRecurringText, UpdateSourceTrigger=PropertyChanged}"
+                                         MaxLength="120"
+                                         Background="#1E293B"
+                                         Foreground="#F8FAFC"
+                                         CaretBrush="#60A5FA"
+                                         BorderBrush="#334155"
+                                         BorderThickness="1"
+                                         FontSize="13.5"
+                                         Padding="12,10"
+                                         VerticalContentAlignment="Center"
+                                         ToolTip="Nhập nội dung mục tiêu thói quen / lặp lại"/>
+
+                                <!-- Giờ hẹn tùy chọn -->
+                                <controls:TimePickerBox Grid.Column="1"
+                                                        SelectedTime="{Binding NewRecurringTime, Mode=TwoWay}"
+                                                        Margin="8,0,0,0"/>
+
+                                <Button Grid.Column="2"
+                                        Content="+ Thêm lặp lại"
+                                        Style="{StaticResource PrimaryButton}"
+                                        Command="{Binding AddDedicatedRecurringGoalCommand}"
+                                        Margin="8,0,0,0"/>
+                            </Grid>
+
+                            <!-- Chọn các thứ trong tuần -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Chọn các thứ:" FontSize="12" Foreground="#CBD5E1" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <ToggleButton Style="{StaticResource DayToggleButtonStyle}" Content="T2" ToolTip="Thứ Hai" IsChecked="{Binding RecDayMon, Mode=TwoWay}"/>
+                                    <ToggleButton Style="{StaticResource DayToggleButtonStyle}" Content="T3" ToolTip="Thứ Ba" IsChecked="{Binding RecDayTue, Mode=TwoWay}"/>
+                                    <ToggleButton Style="{StaticResource DayToggleButtonStyle}" Content="T4" ToolTip="Thứ Tư" IsChecked="{Binding RecDayWed, Mode=TwoWay}"/>
+                                    <ToggleButton Style="{StaticResource DayToggleButtonStyle}" Content="T5" ToolTip="Thứ Năm" IsChecked="{Binding RecDayThu, Mode=TwoWay}"/>
+                                    <ToggleButton Style="{StaticResource DayToggleButtonStyle}" Content="T6" ToolTip="Thứ Sáu" IsChecked="{Binding RecDayFri, Mode=TwoWay}"/>
+                                    <ToggleButton Style="{StaticResource DayToggleButtonStyle}" Content="T7" ToolTip="Thứ Bảy" IsChecked="{Binding RecDaySat, Mode=TwoWay}"/>
+                                    <ToggleButton Style="{StaticResource DayToggleButtonStyle}" Content="CN" ToolTip="Chủ Nhật" IsChecked="{Binding RecDaySun, Mode=TwoWay}"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <Button Content="Cả tuần" Style="{StaticResource SmallActionButton}" Command="{Binding SelectRecAllDaysCommand}" Margin="0,0,4,0"/>
+                                    <Button Content="T2 - T6" Style="{StaticResource SmallActionButton}" Command="{Binding SelectRecWeekdaysCommand}" Margin="0,0,4,0"/>
+                                    <Button Content="Cuối tuần" Style="{StaticResource SmallActionButton}" Command="{Binding SelectRecWeekendCommand}" Margin="0,0,4,0"/>
+                                    <Button Content="Xóa" Style="{StaticResource SmallActionButton}" Command="{Binding ClearRecDaysCommand}"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock Text="{Binding RecurringValidationMessage}"
+                                       Visibility="{Binding RecurringValidationMessage, Converter={StaticResource StringNotEmptyToVis}}"
+                                       Foreground="#EF4444" FontSize="11.5" Margin="2,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Tiêu đề danh sách -->
+                    <Grid Grid.Row="1" Margin="2,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="📋 Danh sách Mục tiêu Lặp lại Đang kích hoạt" FontWeight="SemiBold" FontSize="13" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="{Binding RecurringGoals.Count, StringFormat='{}Tổng: {0} mục tiêu'}" FontSize="12" Foreground="#64748B" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <!-- Danh sách các mục tiêu lặp lại -->
+                    <Border Grid.Row="2" Background="#111827" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="12" ClipToBounds="True">
+                        <ListBox ItemsSource="{Binding RecurringGoals}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="Padding" Value="14,10"/>
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                    <Setter Property="BorderBrush" Value="#1E293B"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <Border Background="{TemplateBinding Background}"
+                                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                                        Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#1E293B"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Tên mục tiêu & giờ -->
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Text}" FontSize="13.5" FontWeight="SemiBold" Foreground="#F8FAFC"/>
+                                            <TextBlock Text="{Binding ReminderTimeText}" FontSize="11.5" Foreground="#38BDF8" Margin="0,3,0,0"
+                                                       Visibility="{Binding ReminderTimeText, Converter={StaticResource StringNotEmptyToVis}}"/>
+                                        </StackPanel>
+
+                                        <!-- Các huy hiệu thứ đã chọn -->
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,16,0">
+                                            <Border Background="#1E293B" CornerRadius="4" Padding="6,3" BorderBrush="#334155" BorderThickness="1">
+                                                <TextBlock Text="{Binding DaysDisplay}" FontSize="11" FontWeight="SemiBold" Foreground="#60A5FA"/>
+                                            </Border>
+                                        </StackPanel>
+
+                                        <!-- Bật/Tắt -->
+                                        <CheckBox Grid.Column="2"
+                                                  Style="{StaticResource ToggleSwitchStyle}"
+                                                  IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                                  Command="{Binding DataContext.ToggleRecurringGoalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                  CommandParameter="{Binding}"
+                                                  VerticalAlignment="Center"
+                                                  Margin="0,0,12,0"
+                                                  ToolTip="Bật hoặc tạm dừng mục tiêu lặp lại này"/>
+
+                                        <!-- Nút Xóa -->
+                                        <Button Grid.Column="3"
+                                                Style="{StaticResource DeleteButton}"
+                                                Content="🗑️"
+                                                Command="{Binding DataContext.DeleteRecurringGoalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"
+                                                VerticalAlignment="Center"
+                                                ToolTip="Xóa mục tiêu lặp lại này"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 4: CÀI ĐẶT (LIVE PREVIEW) -->
             <TabItem Header="⚙️ Cài đặt">
                 <ScrollViewer Margin="0,16,0,0" VerticalScrollBarVisibility="Auto">
-                    <StackPanel MaxWidth="580" HorizontalAlignment="Left">
+                    <StackPanel Margin="0,0,16,0">
 
                         <!-- Nhóm 1: Hiển thị giao diện -->
                         <Border Background="#111827" CornerRadius="12" Padding="18" Margin="0,0,0,16" BorderBrush="#1E293B" BorderThickness="1">
                             <StackPanel>
-                                <TextBlock Text="🎨 Tùy chỉnh Giao diện Overlay (Live Preview)" FontWeight="Bold" FontSize="14" Foreground="#38BDF8" Margin="0,0,0,14"/>
+                                <TextBlock Text="🎨 Tùy chỉnh Giao diện Overlay (Live Preview)" FontWeight="Bold" FontSize="14" Foreground="#38BDF8" Margin="0,0,0,16"/>
 
                                 <!-- Độ trong suốt -->
-                                <Grid Margin="0,0,0,12">
+                                <Grid Margin="0,0,0,14">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="160"/>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="50"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Độ trong suốt (Opacity):" VerticalAlignment="Center" Foreground="#CBD5E1"/>
-                                    <Slider Grid.Column="1" Minimum="0.2" Maximum="1.0" Value="{Binding Opacity, Mode=TwoWay}"
-                                            TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding Opacity, StringFormat='{}{0:P0}'}" Foreground="#94A3B8"
-                                               HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="0" Text="Độ trong suốt (Opacity):" VerticalAlignment="Center" Foreground="#CBD5E1"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                        <Slider Width="200" Minimum="0.2" Maximum="1.0" Value="{Binding Opacity, Mode=TwoWay}"
+                                                TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
+                                        <TextBlock Width="50" Text="{Binding Opacity, StringFormat='{}{0:P0}'}" Foreground="#94A3B8"
+                                                   HorizontalAlignment="Right" TextAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    </StackPanel>
                                 </Grid>
 
                                 <!-- Cỡ chữ -->
-                                <Grid Margin="0,0,0,12">
+                                <Grid Margin="0,0,0,14">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="160"/>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="50"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Cỡ chữ (Font Size):" VerticalAlignment="Center" Foreground="#CBD5E1"/>
-                                    <Slider Grid.Column="1" Minimum="11" Maximum="20" Value="{Binding FontSize, Mode=TwoWay}"
-                                            TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding FontSize, StringFormat='{}{0:0} px'}" Foreground="#94A3B8"
-                                               HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="0" Text="Cỡ chữ (Font Size):" VerticalAlignment="Center" Foreground="#CBD5E1"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                        <Slider Width="200" Minimum="11" Maximum="20" Value="{Binding FontSize, Mode=TwoWay}"
+                                                TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
+                                        <TextBlock Width="50" Text="{Binding FontSize, StringFormat='{}{0:0} px'}" Foreground="#94A3B8"
+                                                   HorizontalAlignment="Right" TextAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    </StackPanel>
                                 </Grid>
 
                                 <!-- Màu chữ -->
                                 <Grid Margin="0,0,0,6">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="160"/>
                                         <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Màu chữ mục tiêu:" VerticalAlignment="Center" Foreground="#CBD5E1"/>
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <TextBlock Grid.Column="0" Text="Màu chữ mục tiêu:" VerticalAlignment="Center" Foreground="#CBD5E1"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
                                         <Button Width="26" Height="26" Background="#F8FAFC" BorderBrush="#334155" Margin="0,0,8,0" Cursor="Hand"
                                                 Command="{Binding SelectColorCommand}" CommandParameter="#F8FAFC" ToolTip="Trắng"/>
                                         <Button Width="26" Height="26" Background="#38BDF8" BorderBrush="#334155" Margin="0,0,8,0" Cursor="Hand"
@@ -644,57 +976,62 @@
                         <!-- Nhóm 2: Màn hình & Tương tác -->
                         <Border Background="#111827" CornerRadius="12" Padding="18" Margin="0,0,0,16" BorderBrush="#1E293B" BorderThickness="1">
                             <StackPanel>
-                                <TextBlock Text="🖥️ Màn hình &amp; Hành vi Hệ thống" FontWeight="Bold" FontSize="14" Foreground="#38BDF8" Margin="0,0,0,14"/>
+                                <TextBlock Text="🖥️ Màn hình &amp; Hành vi Hệ thống" FontWeight="Bold" FontSize="14" Foreground="#38BDF8" Margin="0,0,0,16"/>
 
                                 <!-- Chọn màn hình -->
-                                <Grid Margin="0,0,0,14">
+                                <Grid Margin="0,0,0,16">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="160"/>
                                         <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Màn hình hiển thị:" VerticalAlignment="Center" Foreground="#CBD5E1"/>
+                                    <TextBlock Grid.Column="0" Text="Màn hình hiển thị:" VerticalAlignment="Center" Foreground="#CBD5E1"/>
                                     <ComboBox Grid.Column="1"
+                                              Style="{StaticResource DarkComboBoxStyle}"
                                               ItemsSource="{Binding AvailableMonitors}"
                                               SelectedIndex="{Binding SelectedMonitorIndex, Mode=TwoWay}"
-                                              Background="#1E293B" Foreground="#F8FAFC" Padding="10,6" Width="220" HorizontalAlignment="Left"/>
+                                              Width="240" HorizontalAlignment="Right"/>
                                 </Grid>
 
                                 <!-- Chế độ Click-Through -->
-                                <CheckBox IsChecked="{Binding ClickThrough, Mode=TwoWay}" Margin="0,0,0,12" Cursor="Hand">
-                                    <StackPanel Margin="6,0,0,0">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}" IsChecked="{Binding ClickThrough, Mode=TwoWay}" Margin="0,0,0,16">
+                                    <StackPanel Margin="2,0,0,0">
                                         <TextBlock Text="Chế độ Click-Through (Nhấp chuột xuyên qua)" FontWeight="SemiBold" Foreground="#F8FAFC"/>
                                         <TextBlock Text="Cho phép bấm chuột xuyên qua Overlay tới ứng dụng bên dưới" FontSize="11.5" Foreground="#94A3B8"/>
                                     </StackPanel>
                                 </CheckBox>
 
                                 <!-- Tự khởi động cùng Windows -->
-                                <CheckBox IsChecked="{Binding AutostartEnabled, Mode=TwoWay}" Margin="0,0,0,12" Cursor="Hand">
-                                    <StackPanel Margin="6,0,0,0">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}" IsChecked="{Binding AutostartEnabled, Mode=TwoWay}" Margin="0,0,0,16">
+                                    <StackPanel Margin="2,0,0,0">
                                         <TextBlock Text="Khởi động cùng Windows" FontWeight="SemiBold" Foreground="#F8FAFC"/>
                                         <TextBlock Text="Tự động chạy GoalOverlay (thu nhỏ vào khay hệ thống) khi bật máy" FontSize="11.5" Foreground="#94A3B8"/>
                                     </StackPanel>
                                 </CheckBox>
 
                                 <!-- Tự chuyển tiếp Carry-over -->
-                                <CheckBox IsChecked="{Binding CarryOverUnfinished, Mode=TwoWay}" Margin="0,0,0,16" Cursor="Hand">
-                                    <StackPanel Margin="6,0,0,0">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}" IsChecked="{Binding CarryOverUnfinished, Mode=TwoWay}" Margin="0,0,0,18">
+                                    <StackPanel Margin="2,0,0,0">
                                         <TextBlock Text="Tự chuyển tiếp mục tiêu chưa xong (Carry-over)" FontWeight="SemiBold" Foreground="#F8FAFC"/>
                                         <TextBlock Text="Tự động dời các mục tiêu hàng ngày chưa hoàn thành của hôm qua sang hôm nay" FontSize="11.5" Foreground="#94A3B8"/>
                                     </StackPanel>
                                 </CheckBox>
 
                                 <!-- Phím tắt toàn cục -->
-                                <Border Background="#0F172A" CornerRadius="8" Padding="12" BorderBrush="#334155" BorderThickness="1">
-                                    <StackPanel>
-                                        <StackPanel Orientation="Horizontal">
+                                <Border Background="#0F172A" CornerRadius="8" Padding="14,12" BorderBrush="#334155" BorderThickness="1">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                             <TextBlock Text="⌨️ Phím tắt toàn cục:" FontWeight="Bold" Foreground="#60A5FA"/>
-                                            <Border Background="#1E293B" CornerRadius="4" Padding="6,2" Margin="8,0,0,0">
-                                                <TextBlock Text="Ctrl + Alt + G" FontWeight="Bold" Foreground="#F8FAFC" FontSize="11"/>
-                                            </Border>
+                                            <TextBlock Text="Dùng để ẩn hoặc hiện nhanh cửa sổ Overlay từ bất kỳ ứng dụng nào." FontSize="11.5" Foreground="#94A3B8" Margin="0,3,0,0"/>
+                                            <TextBlock Text="{Binding HotkeyStatusMessage}" FontSize="11" Foreground="#10B981" Margin="0,2,0,0"/>
                                         </StackPanel>
-                                        <TextBlock Text="Dùng để ẩn hoặc hiện nhanh cửa sổ Overlay từ bất kỳ ứng dụng nào." FontSize="11.5" Foreground="#94A3B8" Margin="0,4,0,2"/>
-                                        <TextBlock Text="{Binding HotkeyStatusMessage}" FontSize="11" Foreground="#10B981" Margin="0,2,0,0"/>
-                                    </StackPanel>
+                                        <Border Grid.Column="1" Background="#1E293B" CornerRadius="4" Padding="8,4" VerticalAlignment="Center" HorizontalAlignment="Right" BorderBrush="#334155" BorderThickness="1">
+                                            <TextBlock Text="Ctrl + Alt + G" FontWeight="Bold" Foreground="#F8FAFC" FontSize="12"/>
+                                        </Border>
+                                    </Grid>
                                 </Border>
                             </StackPanel>
                         </Border>
@@ -702,36 +1039,59 @@
                         <!-- Nhóm 3: Cài đặt Nhắc nhở (Reminders) -->
                         <Border Background="#111827" CornerRadius="12" Padding="18" Margin="0,0,0,16" BorderBrush="#1E293B" BorderThickness="1">
                             <StackPanel>
-                                <TextBlock Text="🔔 Hệ thống Nhắc nhở Mục tiêu" FontWeight="Bold" FontSize="14" Foreground="#38BDF8" Margin="0,0,0,14"/>
+                                <TextBlock Text="🔔 Hệ thống Nhắc nhở Mục tiêu" FontWeight="Bold" FontSize="14" Foreground="#38BDF8" Margin="0,0,0,16"/>
 
                                 <!-- Bật/tắt hệ thống nhắc nhở -->
-                                <CheckBox IsChecked="{Binding ReminderEnabled, Mode=TwoWay}" Margin="0,0,0,12" Cursor="Hand">
-                                    <StackPanel Margin="6,0,0,0">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}" IsChecked="{Binding ReminderEnabled, Mode=TwoWay}" Margin="0,0,0,16">
+                                    <StackPanel Margin="2,0,0,0">
                                         <TextBlock Text="Bật hệ thống nhắc nhở mục tiêu" FontWeight="SemiBold" Foreground="#F8FAFC"/>
                                         <TextBlock Text="Tự động hiện thông báo khi đến giờ hẹn của mục tiêu" FontSize="11.5" Foreground="#94A3B8"/>
                                     </StackPanel>
                                 </CheckBox>
 
-                                <!-- Âm thanh thông báo -->
-                                <CheckBox IsChecked="{Binding ReminderSoundEnabled, Mode=TwoWay}" Margin="0,0,0,12" Cursor="Hand"
-                                          IsEnabled="{Binding ReminderEnabled}">
-                                    <StackPanel Margin="6,0,0,0">
+                                <!-- Âm thanh thông báo + Nút nghe thử -->
+                                <Grid Margin="0,0,0,16" IsEnabled="{Binding ReminderEnabled}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
                                         <TextBlock Text="Phát âm thanh chuông báo" FontWeight="SemiBold" Foreground="#F8FAFC"/>
                                         <TextBlock Text="Phát âm thanh chuông hệ thống khi cửa sổ nhắc nhở xuất hiện" FontSize="11.5" Foreground="#94A3B8"/>
                                     </StackPanel>
-                                </CheckBox>
+
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                        <Button Content="🔊 Nghe thử"
+                                                Command="{Binding PlayTestSoundCommand}"
+                                                Style="{StaticResource PrimaryButton}"
+                                                Background="#1E293B"
+                                                Foreground="#38BDF8"
+                                                BorderBrush="#334155"
+                                                BorderThickness="1"
+                                                Padding="12,5"
+                                                FontSize="12"
+                                                Margin="0,0,14,0"
+                                                VerticalAlignment="Center"
+                                                ToolTip="Bấm để nghe thử âm thanh thông báo nhắc nhở"/>
+                                        <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                                  IsChecked="{Binding ReminderSoundEnabled, Mode=TwoWay}"
+                                                  VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Grid>
 
                                 <!-- Nhắc trước (Early Reminder) -->
-                                <Grid Margin="0,0,0,12" IsEnabled="{Binding ReminderEnabled}">
+                                <Grid Margin="0,0,0,16" IsEnabled="{Binding ReminderEnabled}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="160"/>
                                         <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Nhắc nhở trước:" VerticalAlignment="Center" Foreground="#CBD5E1"/>
+                                    <TextBlock Grid.Column="0" Text="Nhắc nhở trước:" VerticalAlignment="Center" Foreground="#CBD5E1"/>
                                     <ComboBox Grid.Column="1"
+                                              Style="{StaticResource DarkComboBoxStyle}"
                                               ItemsSource="{Binding EarlyReminderOptions}"
                                               SelectedItem="{Binding EarlyReminderMinutes, Mode=TwoWay}"
-                                              Background="#1E293B" Foreground="#F8FAFC" Padding="10,6" Width="220" HorizontalAlignment="Left">
+                                              Width="240" HorizontalAlignment="Right">
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding Converter={StaticResource EarlyConverter}}" Foreground="#F8FAFC"/>
@@ -741,16 +1101,17 @@
                                 </Grid>
 
                                 <!-- Nhắc lặp lại nếu chưa bấm xong/hoãn -->
-                                <Grid Margin="0,0,0,12" IsEnabled="{Binding ReminderEnabled}">
+                                <Grid Margin="0,0,0,16" IsEnabled="{Binding ReminderEnabled}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="160"/>
                                         <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Nhắc lại chu kỳ:" VerticalAlignment="Center" Foreground="#CBD5E1"/>
+                                    <TextBlock Grid.Column="0" Text="Nhắc lại chu kỳ:" VerticalAlignment="Center" Foreground="#CBD5E1"/>
                                     <ComboBox Grid.Column="1"
+                                              Style="{StaticResource DarkComboBoxStyle}"
                                               ItemsSource="{Binding RepeatOptions}"
                                               SelectedItem="{Binding RepeatReminderMinutes, Mode=TwoWay}"
-                                              Background="#1E293B" Foreground="#F8FAFC" Padding="10,6" Width="220" HorizontalAlignment="Left">
+                                              Width="240" HorizontalAlignment="Right">
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding Converter={StaticResource RepeatConverter}}" Foreground="#F8FAFC"/>
@@ -760,8 +1121,8 @@
                                 </Grid>
 
                                 <!-- Chế độ Không làm phiền (Do Not Disturb) -->
-                                <CheckBox IsChecked="{Binding DoNotDisturb, Mode=TwoWay}" Margin="0,0,0,4" Cursor="Hand">
-                                    <StackPanel Margin="6,0,0,0">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}" IsChecked="{Binding DoNotDisturb, Mode=TwoWay}" Margin="0,0,0,6">
+                                    <StackPanel Margin="2,0,0,0">
                                         <TextBlock Text="Chế độ Không làm phiền (Do Not Disturb)" FontWeight="SemiBold" Foreground="#F8FAFC"/>
                                         <TextBlock Text="Tạm ngừng toàn bộ cửa sổ nhắc nhở và âm thanh khi cần tập trung" FontSize="11.5" Foreground="#F59E0B"/>
                                     </StackPanel>
@@ -772,5 +1133,6 @@
                 </ScrollViewer>
             </TabItem>
         </TabControl>
+        </Grid>
     </Grid>
 </Window>

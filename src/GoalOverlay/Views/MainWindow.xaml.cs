@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -19,6 +20,9 @@ public partial class MainWindow : Window
     private ListBox? _activeDragSource;
     private bool _isExplicitExit = false;
 
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
     public MainWindow(MainViewModel viewModel)
     {
         InitializeComponent();
@@ -27,6 +31,56 @@ public partial class MainWindow : Window
 
         Loaded += MainWindow_Loaded;
     }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+
+        try
+        {
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            int trueValue = 1;
+            // Kích hoạt giao diện tối Immersive Dark Mode trên Windows 10/11 cho viền và drop shadow
+            DwmSetWindowAttribute(hwnd, 20, ref trueValue, sizeof(int));
+            DwmSetWindowAttribute(hwnd, 19, ref trueValue, sizeof(int));
+        }
+        catch { }
+    }
+
+    #region Điều khiển thanh tiêu đề Custom Dark TitleBar
+
+    private void TitleBar_Minimize_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState.Minimized;
+    }
+
+    private void TitleBar_Maximize_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        UpdateMaximizeButtonIcon();
+    }
+
+    private void TitleBar_Close_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
+    }
+
+    private void UpdateMaximizeButtonIcon()
+    {
+        if (BtnTitleBarMax != null)
+        {
+            BtnTitleBarMax.Content = WindowState == WindowState.Maximized ? "❐" : "⬜";
+            BtnTitleBarMax.ToolTip = WindowState == WindowState.Maximized ? "Khôi phục kích thước" : "Phóng to";
+        }
+    }
+
+    protected override void OnStateChanged(EventArgs e)
+    {
+        base.OnStateChanged(e);
+        UpdateMaximizeButtonIcon();
+    }
+
+    #endregion
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
@@ -63,11 +117,24 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Chuyển trực tiếp sang tab Mục tiêu Lặp lại theo tuần
+    /// </summary>
+    public void SelectRecurringTab()
+    {
+        MainTabs.SelectedIndex = 2;
+    }
+
+    private void NavToRecurringTab_Click(object sender, RoutedEventArgs e)
+    {
+        SelectRecurringTab();
+    }
+
+    /// <summary>
     /// Chuyển trực tiếp sang tab Cài đặt
     /// </summary>
     public void SelectSettingsTab()
     {
-        MainTabs.SelectedIndex = 2;
+        MainTabs.SelectedIndex = 3;
     }
 
     /// <summary>

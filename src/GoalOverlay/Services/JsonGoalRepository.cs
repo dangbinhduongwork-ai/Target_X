@@ -63,39 +63,48 @@ public class JsonGoalRepository : IGoalRepository
         };
     }
 
-    public async Task<List<Goal>> LoadGoalsAsync()
+    private readonly System.Threading.SemaphoreSlim _fileLock = new(1, 1);
+
+    private async Task<GoalsDocument> LoadDocumentInternalAsync()
     {
         if (!File.Exists(_goalsFilePath))
         {
-            return new List<Goal>();
+            return new GoalsDocument();
         }
 
+        string json = await File.ReadAllTextAsync(_goalsFilePath);
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return new GoalsDocument();
+        }
+
+        using var doc = JsonDocument.Parse(json);
+        if (doc.RootElement.ValueKind == JsonValueKind.Array)
+        {
+            // Định dạng V1.0 (mảng JSON thuần): Đánh dấu cần backup V1 khi lưu lần đầu
+            _needsV1MigrationBackup = true;
+            var legacyGoals = JsonSerializer.Deserialize<List<Goal>>(json, _jsonOptions);
+            return new GoalsDocument { SchemaVersion = 2, Goals = legacyGoals ?? new List<Goal>() };
+        }
+        else if (doc.RootElement.ValueKind == JsonValueKind.Object)
+        {
+            // Định dạng V1.1+ (GoalsDocument chứa SchemaVersion)
+            var document = JsonSerializer.Deserialize<GoalsDocument>(json, _jsonOptions);
+            return document ?? new GoalsDocument();
+        }
+        else
+        {
+            throw new JsonException($"Dữ liệu goals.json không đúng định dạng mảng hoặc đối tượng hợp lệ (ValueKind={doc.RootElement.ValueKind}).");
+        }
+    }
+
+    public async Task<List<Goal>> LoadGoalsAsync()
+    {
+        await _fileLock.WaitAsync();
         try
         {
-            string json = await File.ReadAllTextAsync(_goalsFilePath);
-            if (string.IsNullOrWhiteSpace(json))
-            {
-                return new List<Goal>();
-            }
-
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.ValueKind == JsonValueKind.Array)
-            {
-                // Định dạng V1.0 (mảng JSON thuần): Đánh dấu cần backup V1 khi lưu lần đầu
-                _needsV1MigrationBackup = true;
-                var legacyGoals = JsonSerializer.Deserialize<List<Goal>>(json, _jsonOptions);
-                return legacyGoals ?? new List<Goal>();
-            }
-            else if (doc.RootElement.ValueKind == JsonValueKind.Object)
-            {
-                // Định dạng V1.1+ (GoalsDocument chứa SchemaVersion)
-                var document = JsonSerializer.Deserialize<GoalsDocument>(json, _jsonOptions);
-                return document?.Goals ?? new List<Goal>();
-            }
-            else
-            {
-                throw new JsonException($"Dữ liệu goals.json không đúng định dạng mảng hoặc đối tượng hợp lệ (ValueKind={doc.RootElement.ValueKind}).");
-            }
+            var document = await LoadDocumentInternalAsync();
+            return document.Goals ?? new List<Goal>();
         }
         catch (JsonException jsonEx)
         {
@@ -107,11 +116,38 @@ public class JsonGoalRepository : IGoalRepository
             _logger.Error($"Lỗi khi đọc file '{_goalsFilePath}'", ex);
             return new List<Goal>();
         }
+        finally
+        {
+            _fileLock.Release();
+        }
     }
 
-    public async Task SaveGoalsAsync(IEnumerable<Goal> goals)
+    public async Task<List<RecurringGoal>> LoadRecurringGoalsAsync()
     {
-        // Kiểm tra nếu cần tạo bản sao lưu goals.v1.bak từ file V1.0 hiện có
+        await _fileLock.WaitAsync();
+        try
+        {
+            var document = await LoadDocumentInternalAsync();
+            return document.RecurringGoals ?? new List<RecurringGoal>();
+        }
+        catch (JsonException jsonEx)
+        {
+            HandleCorruptFile(_goalsFilePath, jsonEx);
+            return new List<RecurringGoal>();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Lỗi khi đọc mục tiêu lặp lại từ '{_goalsFilePath}'", ex);
+            return new List<RecurringGoal>();
+        }
+        finally
+        {
+            _fileLock.Release();
+        }
+    }
+
+    private void EnsureV1Backup()
+    {
         string v1BakPath = Path.Combine(_baseDirectory, "goals.v1.bak");
         if (_needsV1MigrationBackup || (File.Exists(_goalsFilePath) && !File.Exists(v1BakPath) && IsExistingFileV1Format(_goalsFilePath)))
         {
@@ -132,15 +168,64 @@ public class JsonGoalRepository : IGoalRepository
                 _needsV1MigrationBackup = false;
             }
         }
+    }
 
-        var document = new GoalsDocument
+    public async Task SaveGoalsAsync(IEnumerable<Goal> goals)
+    {
+        await _fileLock.WaitAsync();
+        try
         {
-            SchemaVersion = 2,
-            Goals = goals is List<Goal> list ? list : new List<Goal>(goals)
-        };
+            EnsureV1Backup();
 
-        string json = JsonSerializer.Serialize(document, _jsonOptions);
-        await SafeWriteFileAsync(_goalsFilePath, json);
+            GoalsDocument document;
+            try
+            {
+                document = await LoadDocumentInternalAsync();
+            }
+            catch
+            {
+                document = new GoalsDocument();
+            }
+
+            document.SchemaVersion = 2;
+            document.Goals = goals is List<Goal> list ? list : new List<Goal>(goals);
+
+            string json = JsonSerializer.Serialize(document, _jsonOptions);
+            await SafeWriteFileAsync(_goalsFilePath, json);
+        }
+        finally
+        {
+            _fileLock.Release();
+        }
+    }
+
+    public async Task SaveRecurringGoalsAsync(IEnumerable<RecurringGoal> recurringGoals)
+    {
+        await _fileLock.WaitAsync();
+        try
+        {
+            EnsureV1Backup();
+
+            GoalsDocument document;
+            try
+            {
+                document = await LoadDocumentInternalAsync();
+            }
+            catch
+            {
+                document = new GoalsDocument();
+            }
+
+            document.SchemaVersion = 2;
+            document.RecurringGoals = recurringGoals is List<RecurringGoal> list ? list : new List<RecurringGoal>(recurringGoals);
+
+            string json = JsonSerializer.Serialize(document, _jsonOptions);
+            await SafeWriteFileAsync(_goalsFilePath, json);
+        }
+        finally
+        {
+            _fileLock.Release();
+        }
     }
 
     private static bool IsExistingFileV1Format(string filePath)

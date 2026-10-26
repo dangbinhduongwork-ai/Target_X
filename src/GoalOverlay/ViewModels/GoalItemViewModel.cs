@@ -79,6 +79,8 @@ public partial class GoalItemViewModel : ObservableObject
 
     public bool HasDueTime => Model.DueAt.HasValue;
 
+    public bool IsRecurring => Model.RecurringGoalId.HasValue;
+
     public string DueTimeString
     {
         get

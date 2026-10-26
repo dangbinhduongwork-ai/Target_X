@@ -26,6 +26,7 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
 
     public ObservableCollection<GoalItemViewModel> TodayGoals { get; } = new();
     public ObservableCollection<GoalItemViewModel> MonthGoals { get; } = new();
+    public ObservableCollection<RecurringGoalItemViewModel> RecurringGoals { get; } = new();
     public ObservableCollection<string> AvailableMonitors { get; } = new();
     public ObservableCollection<int> RepeatOptions { get; } = new() { 0, 5, 10, 15, 30 };
     public ObservableCollection<int> EarlyReminderOptions { get; } = new() { 0, 5, 10, 15, 30 };
@@ -35,6 +36,62 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
 
     [ObservableProperty]
     private TimeOnly? _newDailyTime;
+
+    // Thứ trong tuần cho thêm mục tiêu hàng ngày lặp lại
+    [ObservableProperty]
+    private bool _isDailyRecurring = false;
+
+    [ObservableProperty]
+    private bool _dayMon = false;
+
+    [ObservableProperty]
+    private bool _dayTue = false;
+
+    [ObservableProperty]
+    private bool _dayWed = false;
+
+    [ObservableProperty]
+    private bool _dayThu = false;
+
+    [ObservableProperty]
+    private bool _dayFri = false;
+
+    [ObservableProperty]
+    private bool _daySat = false;
+
+    [ObservableProperty]
+    private bool _daySun = false;
+
+    // Các trường cho Tab thêm mục tiêu định kỳ riêng biệt
+    [ObservableProperty]
+    private string _newRecurringText = string.Empty;
+
+    [ObservableProperty]
+    private TimeOnly? _newRecurringTime;
+
+    [ObservableProperty]
+    private bool _recDayMon = true;
+
+    [ObservableProperty]
+    private bool _recDayTue = true;
+
+    [ObservableProperty]
+    private bool _recDayWed = true;
+
+    [ObservableProperty]
+    private bool _recDayThu = true;
+
+    [ObservableProperty]
+    private bool _recDayFri = true;
+
+    [ObservableProperty]
+    private bool _recDaySat = false;
+
+    [ObservableProperty]
+    private bool _recDaySun = false;
+
+    [ObservableProperty]
+    private string _recurringValidationMessage = string.Empty;
 
     [ObservableProperty]
     private string _newMonthlyText = string.Empty;
@@ -200,6 +257,7 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
         {
             var todayList = await _goalService.GetTodayGoalsAsync();
             var monthList = await _goalService.GetCurrentMonthGoalsAsync();
+            var recurringList = await _goalService.GetRecurringGoalsAsync();
 
             TodayGoals.Clear();
             foreach (var g in todayList)
@@ -211,6 +269,12 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
             foreach (var g in monthList)
             {
                 MonthGoals.Add(new GoalItemViewModel(g));
+            }
+
+            RecurringGoals.Clear();
+            foreach (var r in recurringList)
+            {
+                RecurringGoals.Add(new RecurringGoalItemViewModel(r));
             }
         }
         catch (Exception ex)
@@ -238,6 +302,33 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
         }
 
         ValidationMessage = string.Empty;
+
+        // Kiểm tra xem người dùng có chọn lặp lại theo thứ trong tuần không
+        var recurringDays = new List<DayOfWeek>();
+        if (DayMon) recurringDays.Add(DayOfWeek.Monday);
+        if (DayTue) recurringDays.Add(DayOfWeek.Tuesday);
+        if (DayWed) recurringDays.Add(DayOfWeek.Wednesday);
+        if (DayThu) recurringDays.Add(DayOfWeek.Thursday);
+        if (DayFri) recurringDays.Add(DayOfWeek.Friday);
+        if (DaySat) recurringDays.Add(DayOfWeek.Saturday);
+        if (DaySun) recurringDays.Add(DayOfWeek.Sunday);
+
+        if (recurringDays.Count > 0)
+        {
+            // Thêm mục tiêu định kỳ
+            await _goalService.AddRecurringGoalAsync(text, recurringDays, NewDailyTime);
+            NewDailyText = string.Empty;
+            NewDailyTime = null;
+            WarningMessage = string.Empty;
+            ClearDays();
+            IsDailyRecurring = false;
+
+            await LoadGoalsAsync();
+            WeakReferenceMessenger.Default.Send(new GoalsChangedMessage());
+            return;
+        }
+
+        // Nếu không chọn thứ, tạo mục tiêu đơn hàng ngày cho hôm nay
         DateTime? dueAt = NewDailyTime.HasValue ? _clock.Today.ToDateTime(NewDailyTime.Value) : null;
         var created = await _goalService.AddDailyGoalAsync(text, _clock.Today, dueAt: dueAt);
         NewDailyText = string.Empty;
@@ -248,6 +339,119 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
         newItem.RefreshStatus(_clock.Now);
         TodayGoals.Add(newItem);
         WeakReferenceMessenger.Default.Send(new GoalsChangedMessage());
+    }
+
+    [RelayCommand]
+    public async Task AddDedicatedRecurringGoalAsync()
+    {
+        string text = (NewRecurringText ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            RecurringValidationMessage = "Nội dung mục tiêu định kỳ không được để trống.";
+            return;
+        }
+
+        if (text.Length > 120)
+        {
+            text = text[..120];
+        }
+
+        var days = new List<DayOfWeek>();
+        if (RecDayMon) days.Add(DayOfWeek.Monday);
+        if (RecDayTue) days.Add(DayOfWeek.Tuesday);
+        if (RecDayWed) days.Add(DayOfWeek.Wednesday);
+        if (RecDayThu) days.Add(DayOfWeek.Thursday);
+        if (RecDayFri) days.Add(DayOfWeek.Friday);
+        if (RecDaySat) days.Add(DayOfWeek.Saturday);
+        if (RecDaySun) days.Add(DayOfWeek.Sunday);
+
+        if (days.Count == 0)
+        {
+            RecurringValidationMessage = "Vui lòng chọn ít nhất một thứ trong tuần.";
+            return;
+        }
+
+        RecurringValidationMessage = string.Empty;
+        await _goalService.AddRecurringGoalAsync(text, days, NewRecurringTime);
+        NewRecurringText = string.Empty;
+        NewRecurringTime = null;
+
+        await LoadGoalsAsync();
+        WeakReferenceMessenger.Default.Send(new GoalsChangedMessage());
+    }
+
+    [RelayCommand]
+    public async Task ToggleRecurringGoalAsync(RecurringGoalItemViewModel item)
+    {
+        if (item == null) return;
+        await _goalService.ToggleRecurringGoalAsync(item.Id);
+        await LoadGoalsAsync();
+        WeakReferenceMessenger.Default.Send(new GoalsChangedMessage());
+    }
+
+    [RelayCommand]
+    public async Task DeleteRecurringGoalAsync(RecurringGoalItemViewModel item)
+    {
+        if (item == null) return;
+        await _goalService.DeleteRecurringGoalAsync(item.Id);
+        RecurringGoals.Remove(item);
+        WeakReferenceMessenger.Default.Send(new GoalsChangedMessage());
+    }
+
+    [RelayCommand]
+    public void SelectAllDays()
+    {
+        DayMon = DayTue = DayWed = DayThu = DayFri = DaySat = DaySun = true;
+        IsDailyRecurring = true;
+    }
+
+    [RelayCommand]
+    public void SelectWeekdays()
+    {
+        DayMon = DayTue = DayWed = DayThu = DayFri = true;
+        DaySat = DaySun = false;
+        IsDailyRecurring = true;
+    }
+
+    [RelayCommand]
+    public void SelectWeekend()
+    {
+        DayMon = DayTue = DayWed = DayThu = DayFri = false;
+        DaySat = DaySun = true;
+        IsDailyRecurring = true;
+    }
+
+    [RelayCommand]
+    public void ClearDays()
+    {
+        DayMon = DayTue = DayWed = DayThu = DayFri = DaySat = DaySun = false;
+        IsDailyRecurring = false;
+    }
+
+    [RelayCommand]
+    public void SelectRecAllDays()
+    {
+        RecDayMon = RecDayTue = RecDayWed = RecDayThu = RecDayFri = RecDaySat = RecDaySun = true;
+    }
+
+    [RelayCommand]
+    public void SelectRecWeekdays()
+    {
+        RecDayMon = RecDayTue = RecDayWed = RecDayThu = RecDayFri = true;
+        RecDaySat = RecDaySun = false;
+    }
+
+    [RelayCommand]
+    public void SelectRecWeekend()
+    {
+        RecDayMon = RecDayTue = RecDayWed = RecDayThu = RecDayFri = false;
+        RecDaySat = RecDaySun = true;
+    }
+
+    [RelayCommand]
+    public void ClearRecDays()
+    {
+        RecDayMon = RecDayTue = RecDayWed = RecDayThu = RecDayFri = RecDaySat = RecDaySun = false;
     }
 
     [RelayCommand]
@@ -491,6 +695,19 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
     public void SelectColor(string colorHex)
     {
         TextColor = colorHex;
+    }
+
+    [RelayCommand]
+    public void PlayTestSound()
+    {
+        try
+        {
+            GoalOverlay.Services.SoundHelper.PlayNotificationChime();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Lỗi khi phát âm thanh nghe thử thông báo nhắc nhở", ex);
+        }
     }
 }
 

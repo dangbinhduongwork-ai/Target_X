@@ -45,6 +45,50 @@ public partial class OverlayViewModel : ObservableObject, IRecipient<GoalsChange
     [ObservableProperty]
     private bool _clickThrough = false;
 
+    [ObservableProperty]
+    private bool _isCollapsed = false;
+
+    public bool IsExpanded => !IsCollapsed;
+
+    [ObservableProperty]
+    private bool _hasGoals;
+
+    public bool HasNoGoals => !HasGoals;
+
+    [ObservableProperty]
+    private bool _hasTodayGoals;
+
+    [ObservableProperty]
+    private bool _hasMonthGoals;
+
+    public bool ShowSeparator => HasTodayGoals && HasMonthGoals;
+
+    partial void OnHasGoalsChanged(bool value)
+    {
+        OnPropertyChanged(nameof(HasNoGoals));
+    }
+
+    partial void OnHasTodayGoalsChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowSeparator));
+    }
+
+    partial void OnHasMonthGoalsChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowSeparator));
+    }
+
+    partial void OnIsCollapsedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsExpanded));
+    }
+
+    [RelayCommand]
+    public void ToggleCollapse()
+    {
+        IsCollapsed = !IsCollapsed;
+    }
+
     public OverlayViewModel(IGoalService goalService, IClock clock, ILoggerService logger)
     {
         _goalService = goalService;
@@ -102,6 +146,8 @@ public partial class OverlayViewModel : ObservableObject, IRecipient<GoalsChange
     {
         try
         {
+            await CheckAndPurgeLegacySamplesAsync();
+
             var settings = await _goalService.GetSettingsAsync();
             Opacity = settings.Opacity;
             FontSize = settings.FontSize;
@@ -110,14 +156,6 @@ public partial class OverlayViewModel : ObservableObject, IRecipient<GoalsChange
 
             var todayList = await _goalService.GetTodayGoalsAsync();
             var monthList = await _goalService.GetCurrentMonthGoalsAsync();
-
-            // Nếu dữ liệu hoàn toàn trống lần đầu, tạo dữ liệu mẫu để người dùng xem trực quan
-            if (todayList.Count == 0 && monthList.Count == 0)
-            {
-                await SeedSampleGoalsAsync();
-                todayList = await _goalService.GetTodayGoalsAsync();
-                monthList = await _goalService.GetCurrentMonthGoalsAsync();
-            }
 
             DateTime now = _clock.Now;
 
@@ -189,6 +227,10 @@ public partial class OverlayViewModel : ObservableObject, IRecipient<GoalsChange
 
     private void UpdateProgressSummary()
     {
+        HasTodayGoals = TodayGoals.Count > 0;
+        HasMonthGoals = MonthGoals.Count > 0;
+        HasGoals = HasTodayGoals || HasMonthGoals;
+
         int todayDone = TodayGoals.Count(g => g.IsDone);
         int todayTotal = TodayGoals.Count;
         TodayProgressText = $"({todayDone}/{todayTotal} xong)";
@@ -198,18 +240,54 @@ public partial class OverlayViewModel : ObservableObject, IRecipient<GoalsChange
         MonthProgressText = $"({monthDone}/{monthTotal} xong)";
     }
 
-    private async Task SeedSampleGoalsAsync()
+    private static readonly System.Collections.Generic.HashSet<string> LegacySampleGoalTexts = new(StringComparer.OrdinalIgnoreCase)
     {
-        _logger.Info("Khởi tạo bộ dữ liệu mẫu ban đầu cho Overlay HUD");
+        "Uống 2L nước trong ngày",
+        "Hoàn thành code OverlayWindow",
+        "Đi bộ 15 phút buổi tối",
+        "Đọc xong 1 cuốn sách chuyên môn",
+        "Nghiệm thu giai đoạn 3 GoalOverlay"
+    };
 
-        var g1 = await _goalService.AddDailyGoalAsync("Uống 2L nước trong ngày");
-        await _goalService.ToggleGoalAsync(g1.Id); // Đã xong
+    private static bool _legacyPurgeChecked = false;
 
-        await _goalService.AddDailyGoalAsync("Hoàn thành code OverlayWindow");
-        await _goalService.AddDailyGoalAsync("Đi bộ 15 phút buổi tối");
+    private async Task CheckAndPurgeLegacySamplesAsync()
+    {
+        if (_legacyPurgeChecked) return;
+        _legacyPurgeChecked = true;
 
-        await _goalService.AddMonthlyGoalAsync("Đọc xong 1 cuốn sách chuyên môn");
-        var m2 = await _goalService.AddMonthlyGoalAsync("Nghiệm thu giai đoạn 3 GoalOverlay");
-        await _goalService.ToggleGoalAsync(m2.Id); // Đã xong
+        try
+        {
+            var todayList = await _goalService.GetTodayGoalsAsync();
+            var monthList = await _goalService.GetCurrentMonthGoalsAsync();
+
+            bool purged = false;
+            foreach (var g in todayList)
+            {
+                if (LegacySampleGoalTexts.Contains(g.Text.Trim()))
+                {
+                    await _goalService.DeleteGoalAsync(g.Id);
+                    purged = true;
+                }
+            }
+
+            foreach (var g in monthList)
+            {
+                if (LegacySampleGoalTexts.Contains(g.Text.Trim()))
+                {
+                    await _goalService.DeleteGoalAsync(g.Id);
+                    purged = true;
+                }
+            }
+
+            if (purged)
+            {
+                WeakReferenceMessenger.Default.Send(new GoalsChangedMessage());
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Lỗi khi quét dọn mục tiêu mẫu cũ", ex);
+        }
     }
 }

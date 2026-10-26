@@ -27,6 +27,8 @@ public class GoalService : IGoalService
     {
         try
         {
+            await EnsureRecurringGoalsForTodayAsync();
+
             var allGoals = await _repository.LoadGoalsAsync();
             DateOnly today = _clock.Today;
 
@@ -382,6 +384,210 @@ public class GoalService : IGoalService
             return 0;
         }
     }
+
+    #region Quản lý Mục tiêu Định kỳ (Recurring Goals theo thứ trong tuần)
+
+    public async Task<IReadOnlyList<RecurringGoal>> GetRecurringGoalsAsync()
+    {
+        try
+        {
+            var list = await _repository.LoadRecurringGoalsAsync();
+            return list.OrderByDescending(r => r.CreatedAt).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Lỗi khi lấy danh sách mục tiêu lặp lại", ex);
+            return Array.Empty<RecurringGoal>();
+        }
+    }
+
+    public async Task<RecurringGoal> AddRecurringGoalAsync(string text, IEnumerable<DayOfWeek> daysOfWeek, TimeOnly? reminderTime = null)
+    {
+        try
+        {
+            string cleanText = (text ?? string.Empty).Trim();
+            if (cleanText.Length > 120)
+            {
+                cleanText = cleanText[..120];
+            }
+
+            var daysList = (daysOfWeek ?? Enumerable.Empty<DayOfWeek>()).Distinct().ToList();
+            if (daysList.Count == 0)
+            {
+                throw new ArgumentException("Mục tiêu định kỳ phải chọn ít nhất một thứ trong tuần.", nameof(daysOfWeek));
+            }
+
+            var recurringGoals = await _repository.LoadRecurringGoalsAsync();
+            var newRecurring = new RecurringGoal
+            {
+                Id = Guid.NewGuid(),
+                Text = cleanText,
+                ReminderTime = reminderTime,
+                DaysOfWeek = daysList,
+                IsEnabled = true,
+                CreatedAt = _clock.Now
+            };
+
+            recurringGoals.Add(newRecurring);
+            await _repository.SaveRecurringGoalsAsync(recurringGoals);
+            _logger.Info($"Đã thêm mục tiêu lặp lại '{newRecurring.Text}' cho các ngày: {newRecurring.GetDaysDisplay()}");
+
+            // Nếu hôm nay là một trong các ngày được chọn, tự động sinh goal cho hôm nay ngay lập tức
+            if (newRecurring.DaysOfWeek.Contains(_clock.Today.DayOfWeek))
+            {
+                await EnsureRecurringGoalsForTodayAsync();
+            }
+
+            return newRecurring;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Lỗi khi thêm mục tiêu lặp lại '{text}'", ex);
+            throw;
+        }
+    }
+
+    public async Task<bool> UpdateRecurringGoalAsync(RecurringGoal recurringGoal)
+    {
+        try
+        {
+            var allRecurring = await _repository.LoadRecurringGoalsAsync();
+            var target = allRecurring.FirstOrDefault(r => r.Id == recurringGoal.Id);
+            if (target == null) return false;
+
+            target.Text = recurringGoal.Text;
+            target.ReminderTime = recurringGoal.ReminderTime;
+            target.DaysOfWeek = recurringGoal.DaysOfWeek;
+            target.IsEnabled = recurringGoal.IsEnabled;
+
+            await _repository.SaveRecurringGoalsAsync(allRecurring);
+            _logger.Info($"Đã cập nhật mục tiêu lặp lại '{target.Text}'");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Lỗi khi cập nhật mục tiêu lặp lại {recurringGoal.Id}", ex);
+            return false;
+        }
+    }
+
+    public async Task<bool> ToggleRecurringGoalAsync(Guid id)
+    {
+        try
+        {
+            var allRecurring = await _repository.LoadRecurringGoalsAsync();
+            var target = allRecurring.FirstOrDefault(r => r.Id == id);
+            if (target == null) return false;
+
+            target.IsEnabled = !target.IsEnabled;
+            await _repository.SaveRecurringGoalsAsync(allRecurring);
+            _logger.Info($"Đã chuyển trạng thái mục tiêu lặp lại '{target.Text}' thành: {(target.IsEnabled ? "Bật" : "Tắt")}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Lỗi khi bật/tắt mục tiêu lặp lại {id}", ex);
+            return false;
+        }
+    }
+
+    public async Task<bool> DeleteRecurringGoalAsync(Guid id)
+    {
+        try
+        {
+            var allRecurring = await _repository.LoadRecurringGoalsAsync();
+            int removed = allRecurring.RemoveAll(r => r.Id == id);
+            if (removed > 0)
+            {
+                await _repository.SaveRecurringGoalsAsync(allRecurring);
+                _logger.Info($"Đã xóa mục tiêu lặp lại {id}");
+                return true;
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Lỗi khi xóa mục tiêu lặp lại {id}", ex);
+            return false;
+        }
+    }
+
+    public async Task<int> EnsureRecurringGoalsForTodayAsync()
+    {
+        try
+        {
+            DateOnly today = _clock.Today;
+            DayOfWeek todayDayOfWeek = today.DayOfWeek;
+
+            var allRecurring = await _repository.LoadRecurringGoalsAsync();
+            var activeToday = allRecurring
+                .Where(r => r.IsEnabled && r.DaysOfWeek.Contains(todayDayOfWeek))
+                .ToList();
+
+            if (activeToday.Count == 0)
+            {
+                return 0;
+            }
+
+            var allGoals = await _repository.LoadGoalsAsync();
+            int addedCount = 0;
+            bool recurringUpdated = false;
+
+            foreach (var rule in activeToday)
+            {
+                // Kiểm tra xem hôm nay đã có goal nào được tạo từ rule này chưa (hoặc cùng Text chưa xong/đã xong)
+                bool alreadyExistsToday = allGoals.Any(g =>
+                    g.Type == GoalType.Daily &&
+                    g.Date == today &&
+                    (g.RecurringGoalId == rule.Id || g.Text.Equals(rule.Text, StringComparison.OrdinalIgnoreCase)));
+
+                if (!alreadyExistsToday)
+                {
+                    DateTime? dueAt = null;
+                    if (rule.ReminderTime.HasValue)
+                    {
+                        dueAt = today.ToDateTime(rule.ReminderTime.Value);
+                    }
+
+                    var newGoal = new Goal
+                    {
+                        Id = Guid.NewGuid(),
+                        Text = rule.Text,
+                        Type = GoalType.Daily,
+                        Date = today,
+                        DueAt = dueAt,
+                        RecurringGoalId = rule.Id,
+                        IsDone = false,
+                        CreatedAt = _clock.Now
+                    };
+
+                    allGoals.Add(newGoal);
+                    rule.LastGeneratedDate = today;
+                    recurringUpdated = true;
+                    addedCount++;
+                }
+            }
+
+            if (addedCount > 0)
+            {
+                await _repository.SaveGoalsAsync(allGoals);
+                if (recurringUpdated)
+                {
+                    await _repository.SaveRecurringGoalsAsync(allRecurring);
+                }
+                _logger.Info($"Đã tự động khởi tạo {addedCount} mục tiêu lặp lại cho ngày hôm nay ({today})");
+            }
+
+            return addedCount;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Lỗi khi tự động khởi tạo mục tiêu lặp lại cho hôm nay", ex);
+            return 0;
+        }
+    }
+
+    #endregion
 
     public async Task<AppSettings> GetSettingsAsync()
     {
