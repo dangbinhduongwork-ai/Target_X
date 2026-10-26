@@ -8,20 +8,24 @@ using CommunityToolkit.Mvvm.Messaging;
 using GoalOverlay.Models;
 using GoalOverlay.Services;
 
+using System.Windows.Threading;
+
 namespace GoalOverlay.ViewModels;
 
 /// <summary>
 /// ViewModel quản lý dữ liệu hiển thị trên Overlay HUD
-/// Lắng nghe đồng bộ realtime dữ liệu mục tiêu và Live Preview cài đặt
+/// Lắng nghe đồng bộ realtime dữ liệu mục tiêu, hiển thị giờ hẹn, màu trạng thái và Live Preview cài đặt
+/// Tự động làm mới màu sắc mỗi 30 giây mà không giành focus của người dùng
 /// </summary>
 public partial class OverlayViewModel : ObservableObject, IRecipient<GoalsChangedMessage>, IRecipient<SettingsChangedMessage>
 {
     private readonly IGoalService _goalService;
     private readonly IClock _clock;
     private readonly ILoggerService _logger;
+    private DispatcherTimer? _statusTimer;
 
-    public ObservableCollection<Goal> TodayGoals { get; } = new();
-    public ObservableCollection<Goal> MonthGoals { get; } = new();
+    public ObservableCollection<GoalItemViewModel> TodayGoals { get; } = new();
+    public ObservableCollection<GoalItemViewModel> MonthGoals { get; } = new();
 
     [ObservableProperty]
     private string _todayProgressText = "(0/0 xong)";
@@ -49,6 +53,31 @@ public partial class OverlayViewModel : ObservableObject, IRecipient<GoalsChange
 
         WeakReferenceMessenger.Default.Register<GoalsChangedMessage>(this);
         WeakReferenceMessenger.Default.Register<SettingsChangedMessage>(this);
+
+        InitializeStatusTimer();
+    }
+
+    private void InitializeStatusTimer()
+    {
+        _statusTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(30)
+        };
+        _statusTimer.Tick += (s, e) => RefreshItemStatuses();
+        _statusTimer.Start();
+    }
+
+    public void RefreshItemStatuses()
+    {
+        DateTime now = _clock.Now;
+        foreach (var item in TodayGoals)
+        {
+            item.RefreshStatus(now);
+        }
+        foreach (var item in MonthGoals)
+        {
+            item.RefreshStatus(now);
+        }
     }
 
     public async void Receive(GoalsChangedMessage message)
@@ -90,16 +119,22 @@ public partial class OverlayViewModel : ObservableObject, IRecipient<GoalsChange
                 monthList = await _goalService.GetCurrentMonthGoalsAsync();
             }
 
+            DateTime now = _clock.Now;
+
             TodayGoals.Clear();
             foreach (var g in todayList)
             {
-                TodayGoals.Add(g);
+                var item = new GoalItemViewModel(g);
+                item.RefreshStatus(now);
+                TodayGoals.Add(item);
             }
 
             MonthGoals.Clear();
             foreach (var g in monthList)
             {
-                MonthGoals.Add(g);
+                var item = new GoalItemViewModel(g);
+                item.RefreshStatus(now);
+                MonthGoals.Add(item);
             }
 
             UpdateProgressSummary();
@@ -114,16 +149,26 @@ public partial class OverlayViewModel : ObservableObject, IRecipient<GoalsChange
     /// Đảo trạng thái hoàn thành của một mục tiêu
     /// </summary>
     [RelayCommand]
-    public async Task ToggleGoalAsync(Goal? goal)
+    public async Task ToggleGoalAsync(object? param)
     {
+        GoalItemViewModel? vm = param as GoalItemViewModel;
+        Goal? goal = vm?.Model ?? (param as Goal);
         if (goal == null) return;
 
         try
         {
             await _goalService.ToggleGoalAsync(goal.Id);
-            goal.IsDone = !goal.IsDone;
-            UpdateProgressSummary();
+            if (vm != null)
+            {
+                vm.IsDone = !vm.IsDone;
+                vm.RefreshStatus(_clock.Now);
+            }
+            else
+            {
+                goal.IsDone = !goal.IsDone;
+            }
 
+            UpdateProgressSummary();
             WeakReferenceMessenger.Default.Send(new GoalsChangedMessage());
         }
         catch (Exception ex)

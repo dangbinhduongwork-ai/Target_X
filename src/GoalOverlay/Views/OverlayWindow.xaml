@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:models="clr-namespace:GoalOverlay.Models"
+        xmlns:vm="clr-namespace:GoalOverlay.ViewModels"
         mc:Ignorable="d"
         Title="GoalOverlay HUD"
         WindowStyle="None"
@@ -16,6 +17,8 @@
         SizeToContent="WidthAndHeight">
 
     <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
         <!-- Hiệu ứng bóng đổ nền HUD tổng thể -->
         <DropShadowEffect x:Key="CardDropShadow" BlurRadius="20" ShadowDepth="4" Direction="270" Color="#000000" Opacity="0.6"/>
 
@@ -167,9 +170,10 @@
 
                 <ItemsControl ItemsSource="{Binding TodayGoals}">
                     <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type models:Goal}">
+                        <DataTemplate DataType="{x:Type vm:GoalItemViewModel}">
                             <Grid Margin="0,3,0,4">
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
@@ -181,8 +185,36 @@
                                         CommandParameter="{Binding}"
                                         VerticalAlignment="Center"/>
 
+                                <!-- Giờ hẹn dạng "20:30" trước tên mục tiêu kèm màu trạng thái -->
+                                <Border Grid.Column="1"
+                                        Visibility="{Binding HasDueTime, Converter={StaticResource BoolToVis}}"
+                                        Background="#220F172A"
+                                        BorderBrush="{Binding StatusColor}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="4,1"
+                                        Margin="0,0,6,0"
+                                        VerticalAlignment="Center">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsDone}" Value="True">
+                                                    <Setter Property="Opacity" Value="0.5"/>
+                                                    <Setter Property="BorderBrush" Value="#475569"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding DueTimeString}"
+                                               FontSize="10.5"
+                                               FontWeight="SemiBold"
+                                               Foreground="{Binding StatusColor}"
+                                               Effect="{StaticResource TextDropShadow}"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+
                                 <!-- Text mục tiêu: gạch ngang và mờ hơn khi đã xong -->
-                                <TextBlock Grid.Column="1"
+                                <TextBlock Grid.Column="2"
                                            Text="{Binding Text}"
                                            FontSize="{Binding DataContext.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
                                            Foreground="{Binding DataContext.TextColor, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -221,9 +253,10 @@
 
                 <ItemsControl ItemsSource="{Binding MonthGoals}">
                     <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type models:Goal}">
+                        <DataTemplate DataType="{x:Type vm:GoalItemViewModel}">
                             <Grid Margin="0,3,0,4">
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
@@ -234,7 +267,35 @@
                                         CommandParameter="{Binding}"
                                         VerticalAlignment="Center"/>
 
-                                <TextBlock Grid.Column="1"
+                                <!-- Badge hạn chót / giờ hẹn cho mục tiêu tháng -->
+                                <Border Grid.Column="1"
+                                        Visibility="{Binding HasDueTime, Converter={StaticResource BoolToVis}}"
+                                        Background="#220F172A"
+                                        BorderBrush="{Binding StatusColor}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="4,1"
+                                        Margin="0,0,6,0"
+                                        VerticalAlignment="Center">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsDone}" Value="True">
+                                                    <Setter Property="Opacity" Value="0.5"/>
+                                                    <Setter Property="BorderBrush" Value="#475569"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding DueTimeString}"
+                                               FontSize="10.5"
+                                               FontWeight="SemiBold"
+                                               Foreground="{Binding StatusColor}"
+                                               Effect="{StaticResource TextDropShadow}"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+
+                                <TextBlock Grid.Column="2"
                                            Text="{Binding Text}"
                                            FontSize="{Binding DataContext.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
                                            Foreground="{Binding DataContext.TextColor, RelativeSource={RelativeSource AncestorType=Window}}"

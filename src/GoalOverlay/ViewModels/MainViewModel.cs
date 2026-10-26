@@ -26,15 +26,29 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
     public ObservableCollection<GoalItemViewModel> TodayGoals { get; } = new();
     public ObservableCollection<GoalItemViewModel> MonthGoals { get; } = new();
     public ObservableCollection<string> AvailableMonitors { get; } = new();
+    public ObservableCollection<int> RepeatOptions { get; } = new() { 0, 5, 10, 15, 30 };
+    public ObservableCollection<int> EarlyReminderOptions { get; } = new() { 0, 5, 10, 15, 30 };
 
     [ObservableProperty]
     private string _newDailyText = string.Empty;
 
     [ObservableProperty]
+    private TimeOnly? _newDailyTime;
+
+    [ObservableProperty]
     private string _newMonthlyText = string.Empty;
 
     [ObservableProperty]
+    private DateTime? _newMonthlyDueDate;
+
+    [ObservableProperty]
+    private TimeOnly? _newMonthlyDueTime;
+
+    [ObservableProperty]
     private string _validationMessage = string.Empty;
+
+    [ObservableProperty]
+    private string _warningMessage = string.Empty;
 
     // Cài đặt hiển thị & hệ thống
     [ObservableProperty]
@@ -61,7 +75,42 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
     [ObservableProperty]
     private string _hotkeyStatusMessage = "Đang kích hoạt: Ctrl + Alt + G";
 
+    // Cài đặt Nhắc nhở (Reminders)
+    [ObservableProperty]
+    private bool _reminderEnabled = true;
+
+    [ObservableProperty]
+    private bool _reminderSoundEnabled = true;
+
+    [ObservableProperty]
+    private int _repeatReminderMinutes = 0;
+
+    [ObservableProperty]
+    private int _earlyReminderMinutes = 0;
+
+    [ObservableProperty]
+    private bool _doNotDisturb = false;
+
     private bool _isInitializingSettings = true;
+
+    partial void OnNewDailyTimeChanged(TimeOnly? value)
+    {
+        CheckDailyTimeWarning();
+    }
+
+    private void CheckDailyTimeWarning()
+    {
+        if (NewDailyTime.HasValue)
+        {
+            DateTime target = _clock.Today.ToDateTime(NewDailyTime.Value);
+            if (target < _clock.Now)
+            {
+                WarningMessage = "⚠️ Giờ này đã qua, sẽ nhắc ngay khi lưu";
+                return;
+            }
+        }
+        WarningMessage = string.Empty;
+    }
 
     public MainViewModel(
         IGoalService goalService,
@@ -106,6 +155,13 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
             SelectedMonitorIndex = settings.MonitorIndex;
             ClickThrough = settings.ClickThrough;
             CarryOverUnfinished = settings.CarryOverUnfinished;
+
+            // Nạp cấu hình nhắc nhở
+            ReminderEnabled = settings.ReminderEnabled;
+            ReminderSoundEnabled = settings.ReminderSoundEnabled;
+            RepeatReminderMinutes = settings.RepeatReminderMinutes;
+            EarlyReminderMinutes = settings.EarlyReminderMinutes;
+            DoNotDisturb = settings.DoNotDisturb;
 
             // Nạp trạng thái tự khởi động cùng Windows và phím tắt
             AutostartEnabled = _autostartService.IsEnabled();
@@ -180,10 +236,15 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
         }
 
         ValidationMessage = string.Empty;
-        var created = await _goalService.AddDailyGoalAsync(text);
+        DateTime? dueAt = NewDailyTime.HasValue ? _clock.Today.ToDateTime(NewDailyTime.Value) : null;
+        var created = await _goalService.AddDailyGoalAsync(text, _clock.Today, dueAt: dueAt);
         NewDailyText = string.Empty;
+        NewDailyTime = null;
+        WarningMessage = string.Empty;
 
-        TodayGoals.Add(new GoalItemViewModel(created));
+        var newItem = new GoalItemViewModel(created);
+        newItem.RefreshStatus(_clock.Now);
+        TodayGoals.Add(newItem);
         WeakReferenceMessenger.Default.Send(new GoalsChangedMessage());
     }
 
@@ -204,10 +265,26 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
         }
 
         ValidationMessage = string.Empty;
-        var created = await _goalService.AddMonthlyGoalAsync(text);
-        NewMonthlyText = string.Empty;
+        DateTime? dueAt = null;
+        if (NewMonthlyDueDate.HasValue)
+        {
+            dueAt = NewMonthlyDueTime.HasValue
+                ? NewMonthlyDueDate.Value.Date.Add(NewMonthlyDueTime.Value.ToTimeSpan())
+                : NewMonthlyDueDate.Value.Date;
+        }
+        else if (NewMonthlyDueTime.HasValue)
+        {
+            dueAt = _clock.Now.Date.Add(NewMonthlyDueTime.Value.ToTimeSpan());
+        }
 
-        MonthGoals.Add(new GoalItemViewModel(created));
+        var created = await _goalService.AddMonthlyGoalAsync(text, dueAt: dueAt);
+        NewMonthlyText = string.Empty;
+        NewMonthlyDueDate = null;
+        NewMonthlyDueTime = null;
+
+        var newItem = new GoalItemViewModel(created);
+        newItem.RefreshStatus(_clock.Now);
+        MonthGoals.Add(newItem);
         WeakReferenceMessenger.Default.Send(new GoalsChangedMessage());
     }
 
@@ -218,6 +295,7 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
 
         await _goalService.ToggleGoalAsync(item.Model.Id);
         item.IsDone = !item.IsDone;
+        item.RefreshStatus(_clock.Now);
         WeakReferenceMessenger.Default.Send(new GoalsChangedMessage());
     }
 
@@ -247,8 +325,7 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
             }
         }
 
-        item.EditText = item.Text;
-        item.IsEditing = true;
+        item.BeginEdit();
     }
 
     [RelayCommand]
@@ -270,7 +347,35 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
 
         await _goalService.UpdateGoalTextAsync(item.Model.Id, text);
         item.Text = text;
+
+        // Cập nhật DueAt cho mục tiêu
+        DateTime? newDue = null;
+        if (item.Model.Type == GoalType.Daily)
+        {
+            if (item.EditDueTime.HasValue)
+            {
+                DateOnly baseDate = item.Model.Date != default ? item.Model.Date : _clock.Today;
+                newDue = baseDate.ToDateTime(item.EditDueTime.Value);
+            }
+        }
+        else
+        {
+            if (item.EditDueDate.HasValue)
+            {
+                newDue = item.EditDueTime.HasValue
+                    ? item.EditDueDate.Value.Date.Add(item.EditDueTime.Value.ToTimeSpan())
+                    : item.EditDueDate.Value.Date;
+            }
+            else if (item.EditDueTime.HasValue)
+            {
+                newDue = _clock.Now.Date.Add(item.EditDueTime.Value.ToTimeSpan());
+            }
+        }
+
+        await _goalService.SetDueTimeAsync(item.Model.Id, newDue);
+        item.DueAt = newDue;
         item.IsEditing = false;
+        item.RefreshStatus(_clock.Now);
 
         WeakReferenceMessenger.Default.Send(new GoalsChangedMessage());
     }
@@ -330,6 +435,11 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
     partial void OnSelectedMonitorIndexChanged(int value) => ApplySettingsLive();
     partial void OnClickThroughChanged(bool value) => ApplySettingsLive();
     partial void OnCarryOverUnfinishedChanged(bool value) => ApplySettingsLive();
+    partial void OnReminderEnabledChanged(bool value) => ApplySettingsLive();
+    partial void OnReminderSoundEnabledChanged(bool value) => ApplySettingsLive();
+    partial void OnRepeatReminderMinutesChanged(int value) => ApplySettingsLive();
+    partial void OnEarlyReminderMinutesChanged(int value) => ApplySettingsLive();
+    partial void OnDoNotDisturbChanged(bool value) => ApplySettingsLive();
 
     private void ApplySettingsLive()
     {
@@ -342,7 +452,12 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
             TextColor = TextColor,
             MonitorIndex = SelectedMonitorIndex,
             ClickThrough = ClickThrough,
-            CarryOverUnfinished = CarryOverUnfinished
+            CarryOverUnfinished = CarryOverUnfinished,
+            ReminderEnabled = ReminderEnabled,
+            ReminderSoundEnabled = ReminderSoundEnabled,
+            RepeatReminderMinutes = RepeatReminderMinutes,
+            EarlyReminderMinutes = EarlyReminderMinutes,
+            DoNotDisturb = DoNotDisturb
         };
 
         _ = _goalService.SaveSettingsAsync(settings);

@@ -4,16 +4,21 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:GoalOverlay.ViewModels"
+        xmlns:controls="clr-namespace:GoalOverlay.Views.Controls"
+        xmlns:converters="clr-namespace:GoalOverlay.Views.Converters"
         mc:Ignorable="d"
         Title="GoalOverlay - Quản Lý Mục Tiêu"
-        Height="620" Width="680"
-        MinHeight="500" MinWidth="580"
+        Height="640" Width="740"
+        MinHeight="520" MinWidth="620"
         WindowStartupLocation="CenterScreen"
         Background="#0B0F19"
         Foreground="#F8FAFC">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:RepeatMinutesConverter x:Key="RepeatConverter"/>
+        <converters:EarlyMinutesConverter x:Key="EarlyConverter"/>
+        <converters:StringNotEmptyToVisibilityConverter x:Key="StringNotEmptyToVis"/>
 
         <!-- Nút thêm hiện đại -->
         <Style x:Key="PrimaryButton" TargetType="Button">
@@ -146,13 +151,15 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Khung nhập mục tiêu mới -->
+                    <!-- Khung nhập mục tiêu mới (Text + TimePickerBox + Thêm) -->
                     <Grid Grid.Row="0" Margin="0,0,0,8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
@@ -169,18 +176,32 @@
                                  VerticalContentAlignment="Center"
                                  KeyDown="TxtDailyInput_KeyDown"/>
 
-                        <Button Grid.Column="1"
+                        <!-- Chọn giờ hẹn tùy chọn -->
+                        <controls:TimePickerBox Grid.Column="1"
+                                                SelectedTime="{Binding NewDailyTime, Mode=TwoWay}"
+                                                Margin="8,0,0,0"/>
+
+                        <Button Grid.Column="2"
                                 Content="+ Thêm"
                                 Style="{StaticResource PrimaryButton}"
                                 Command="{Binding AddDailyGoalCommand}"
-                                Margin="10,0,0,0"/>
+                                Margin="8,0,0,0"/>
                     </Grid>
 
-                    <!-- Thông báo validation -->
-                    <TextBlock Grid.Row="1" Text="{Binding ValidationMessage}" Foreground="#EF4444" FontSize="11.5" Margin="2,0,0,8"/>
+                    <!-- Cảnh báo nếu chọn giờ đã qua trong hôm nay -->
+                    <TextBlock Grid.Row="1"
+                               Text="{Binding WarningMessage}"
+                               Visibility="{Binding WarningMessage, Converter={StaticResource StringNotEmptyToVis}}"
+                               Foreground="#F59E0B" FontWeight="SemiBold" FontSize="11.5" Margin="2,0,0,6"/>
 
-                    <!-- Danh sách mục tiêu hôm nay (Kéo thả, Checkbox, Double-click sửa) -->
-                    <ListBox Grid.Row="2"
+                    <!-- Thông báo validation lỗi rỗng -->
+                    <TextBlock Grid.Row="2"
+                               Text="{Binding ValidationMessage}"
+                               Visibility="{Binding ValidationMessage, Converter={StaticResource StringNotEmptyToVis}}"
+                               Foreground="#EF4444" FontSize="11.5" Margin="2,0,0,8"/>
+
+                    <!-- Danh sách mục tiêu hôm nay (Kéo thả, Checkbox, Badge giờ, Double-click sửa) -->
+                    <ListBox Grid.Row="3"
                              x:Name="ListDailyGoals"
                              ItemsSource="{Binding TodayGoals}"
                              Background="#111827"
@@ -223,6 +244,7 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
@@ -239,15 +261,27 @@
                                               CommandParameter="{Binding}"
                                               Margin="0,0,10,0"/>
 
+                                    <!-- Cột Badge giờ hẹn dạng "20:30" -->
+                                    <Border Grid.Column="2"
+                                            Visibility="{Binding HasDueTime, Converter={StaticResource BoolToVis}}"
+                                            Background="#1E293B" BorderBrush="{Binding StatusColor}" BorderThickness="1"
+                                            CornerRadius="4" Padding="5,2" Margin="0,0,10,0" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🕒" FontSize="10" Margin="0,0,3,0" Foreground="{Binding StatusColor}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding DueTimeString}" FontSize="11.5" FontWeight="SemiBold"
+                                                       Foreground="{Binding StatusColor}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+
                                     <!-- Hiển thị text mục tiêu bình thường (Nhấp đúp chuột để sửa) -->
-                                    <TextBlock Grid.Column="2"
+                                    <TextBlock Grid.Column="3"
                                                Text="{Binding Text}"
                                                FontSize="13.5"
                                                Foreground="#F1F5F9"
                                                TextWrapping="Wrap"
                                                VerticalAlignment="Center"
                                                MouseLeftButtonDown="GoalText_MouseLeftButtonDown"
-                                               ToolTip="Nhấp đúp chuột để sửa nhanh">
+                                               ToolTip="Nhấp đúp chuột để sửa cả nội dung và giờ hẹn">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Style.Triggers>
@@ -263,20 +297,10 @@
                                         </TextBlock.Style>
                                     </TextBlock>
 
-                                    <!-- Ô sửa nhanh tại chỗ (hiển thị khi IsEditing = true) -->
-                                    <TextBox Grid.Column="2"
-                                             Text="{Binding EditText, UpdateSourceTrigger=PropertyChanged}"
-                                             MaxLength="120"
-                                             Background="#0F172A"
-                                             Foreground="#38BDF8"
-                                             BorderBrush="#38BDF8"
-                                             BorderThickness="1"
-                                             Padding="6,4"
-                                             FontSize="13"
-                                             KeyDown="EditGoalTextBox_KeyDown"
-                                             LostFocus="EditGoalTextBox_LostFocus">
-                                        <TextBox.Style>
-                                            <Style TargetType="TextBox">
+                                    <!-- Khung sửa nhanh tại chỗ khi IsEditing = true (Text + TimePickerBox + Lưu/Hủy) -->
+                                    <Grid Grid.Column="3">
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsEditing}" Value="True">
@@ -284,11 +308,41 @@
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
-                                        </TextBox.Style>
-                                    </TextBox>
+                                        </Grid.Style>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBox Grid.Column="0"
+                                                 Text="{Binding EditText, UpdateSourceTrigger=PropertyChanged}"
+                                                 MaxLength="120"
+                                                 Background="#0F172A"
+                                                 Foreground="#38BDF8"
+                                                 BorderBrush="#38BDF8"
+                                                 BorderThickness="1"
+                                                 Padding="6,4"
+                                                 FontSize="13"
+                                                 VerticalContentAlignment="Center"
+                                                 KeyDown="EditGoalTextBox_KeyDown"/>
+
+                                        <controls:TimePickerBox Grid.Column="1"
+                                                                SelectedTime="{Binding EditDueTime, Mode=TwoWay}"
+                                                                Margin="6,0,0,0"/>
+
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="6,0,0,0">
+                                            <Button Content="✓" Style="{StaticResource PrimaryButton}" Padding="8,4" FontSize="11" Margin="0,0,4,0"
+                                                    Command="{Binding DataContext.SaveEditCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}" ToolTip="Lưu thay đổi (Enter)"/>
+                                            <Button Content="✕" Style="{StaticResource DeleteButton}" Padding="8,4" FontSize="11"
+                                                    Command="{Binding DataContext.CancelEditCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}" ToolTip="Hủy bỏ (Esc)"/>
+                                        </StackPanel>
+                                    </Grid>
 
                                     <!-- Nút xóa mục tiêu -->
-                                    <Button Grid.Column="3"
+                                    <Button Grid.Column="4"
                                             Content="✕"
                                             Style="{StaticResource DeleteButton}"
                                             Command="{Binding DataContext.DeleteGoalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -311,9 +365,12 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
+                    <!-- Khung nhập mục tiêu tháng (Text + DatePicker + TimePickerBox + Thêm) -->
                     <Grid Grid.Row="0" Margin="0,0,0,8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
@@ -330,14 +387,30 @@
                                  VerticalContentAlignment="Center"
                                  KeyDown="TxtMonthlyInput_KeyDown"/>
 
-                        <Button Grid.Column="1"
+                        <!-- Chọn ngày hạn chót -->
+                        <DatePicker Grid.Column="1"
+                                    SelectedDate="{Binding NewMonthlyDueDate, Mode=TwoWay}"
+                                    Width="110"
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    ToolTip="Chọn ngày hạn chót trong tháng"/>
+
+                        <!-- Chọn giờ hạn chót tùy chọn -->
+                        <controls:TimePickerBox Grid.Column="2"
+                                                SelectedTime="{Binding NewMonthlyDueTime, Mode=TwoWay}"
+                                                Margin="8,0,0,0"/>
+
+                        <Button Grid.Column="3"
                                 Content="+ Thêm"
                                 Style="{StaticResource PrimaryButton}"
                                 Command="{Binding AddMonthlyGoalCommand}"
-                                Margin="10,0,0,0"/>
+                                Margin="8,0,0,0"/>
                     </Grid>
 
-                    <TextBlock Grid.Row="1" Text="{Binding ValidationMessage}" Foreground="#EF4444" FontSize="11.5" Margin="2,0,0,8"/>
+                    <TextBlock Grid.Row="1"
+                               Text="{Binding ValidationMessage}"
+                               Visibility="{Binding ValidationMessage, Converter={StaticResource StringNotEmptyToVis}}"
+                               Foreground="#EF4444" FontSize="11.5" Margin="2,0,0,8"/>
 
                     <ListBox Grid.Row="2"
                              x:Name="ListMonthlyGoals"
@@ -382,13 +455,16 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
 
+                                    <!-- Tay cầm kéo thả ⠿ -->
                                     <TextBlock Grid.Column="0" Text="⠿" Foreground="#475569" FontSize="14" VerticalAlignment="Center"
                                                Margin="0,0,10,0" Cursor="SizeAll" ToolTip="Kéo để sắp xếp lại vị trí"/>
 
+                                    <!-- Checkbox hoàn thành -->
                                     <CheckBox Grid.Column="1"
                                               IsChecked="{Binding IsDone}"
                                               Style="{StaticResource GoalCheckRound}"
@@ -396,14 +472,27 @@
                                               CommandParameter="{Binding}"
                                               Margin="0,0,10,0"/>
 
-                                    <TextBlock Grid.Column="2"
+                                    <!-- Badge hạn chót / giờ hẹn -->
+                                    <Border Grid.Column="2"
+                                            Visibility="{Binding HasDueTime, Converter={StaticResource BoolToVis}}"
+                                            Background="#1E293B" BorderBrush="{Binding StatusColor}" BorderThickness="1"
+                                            CornerRadius="4" Padding="5,2" Margin="0,0,10,0" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="📅" FontSize="10" Margin="0,0,3,0" Foreground="{Binding StatusColor}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding DueTimeString}" FontSize="11.5" FontWeight="SemiBold"
+                                                       Foreground="{Binding StatusColor}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Hiển thị text mục tiêu bình thường (Nhấp đúp chuột để sửa) -->
+                                    <TextBlock Grid.Column="3"
                                                Text="{Binding Text}"
                                                FontSize="13.5"
                                                Foreground="#F1F5F9"
                                                TextWrapping="Wrap"
                                                VerticalAlignment="Center"
                                                MouseLeftButtonDown="GoalText_MouseLeftButtonDown"
-                                               ToolTip="Nhấp đúp chuột để sửa nhanh">
+                                               ToolTip="Nhấp đúp chuột để sửa cả nội dung và hạn chót">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Style.Triggers>
@@ -419,19 +508,10 @@
                                         </TextBlock.Style>
                                     </TextBlock>
 
-                                    <TextBox Grid.Column="2"
-                                             Text="{Binding EditText, UpdateSourceTrigger=PropertyChanged}"
-                                             MaxLength="120"
-                                             Background="#0F172A"
-                                             Foreground="#38BDF8"
-                                             BorderBrush="#38BDF8"
-                                             BorderThickness="1"
-                                             Padding="6,4"
-                                             FontSize="13"
-                                             KeyDown="EditGoalTextBox_KeyDown"
-                                             LostFocus="EditGoalTextBox_LostFocus">
-                                        <TextBox.Style>
-                                            <Style TargetType="TextBox">
+                                    <!-- Khung sửa nhanh tại chỗ khi IsEditing = true -->
+                                    <Grid Grid.Column="3">
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsEditing}" Value="True">
@@ -439,10 +519,48 @@
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
-                                        </TextBox.Style>
-                                    </TextBox>
+                                        </Grid.Style>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
 
-                                    <Button Grid.Column="3"
+                                        <TextBox Grid.Column="0"
+                                                 Text="{Binding EditText, UpdateSourceTrigger=PropertyChanged}"
+                                                 MaxLength="120"
+                                                 Background="#0F172A"
+                                                 Foreground="#38BDF8"
+                                                 BorderBrush="#38BDF8"
+                                                 BorderThickness="1"
+                                                 Padding="6,4"
+                                                 FontSize="13"
+                                                 VerticalContentAlignment="Center"
+                                                 KeyDown="EditGoalTextBox_KeyDown"/>
+
+                                        <DatePicker Grid.Column="1"
+                                                    SelectedDate="{Binding EditDueDate, Mode=TwoWay}"
+                                                    Width="105"
+                                                    Margin="6,0,0,0"
+                                                    VerticalAlignment="Center"/>
+
+                                        <controls:TimePickerBox Grid.Column="2"
+                                                                SelectedTime="{Binding EditDueTime, Mode=TwoWay}"
+                                                                Margin="6,0,0,0"/>
+
+                                        <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="6,0,0,0">
+                                            <Button Content="✓" Style="{StaticResource PrimaryButton}" Padding="8,4" FontSize="11" Margin="0,0,4,0"
+                                                    Command="{Binding DataContext.SaveEditCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}" ToolTip="Lưu thay đổi (Enter)"/>
+                                            <Button Content="✕" Style="{StaticResource DeleteButton}" Padding="8,4" FontSize="11"
+                                                    Command="{Binding DataContext.CancelEditCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}" ToolTip="Hủy bỏ (Esc)"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <!-- Nút xóa mục tiêu -->
+                                    <Button Grid.Column="4"
                                             Content="✕"
                                             Style="{StaticResource DeleteButton}"
                                             Command="{Binding DataContext.DeleteGoalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -574,6 +692,76 @@
                                         <TextBlock Text="{Binding HotkeyStatusMessage}" FontSize="11" Foreground="#10B981" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Nhóm 3: Cài đặt Nhắc nhở (Reminders) -->
+                        <Border Background="#111827" CornerRadius="10" Padding="18" Margin="0,0,0,16" BorderBrush="#1F2937" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="🔔 Hệ thống Nhắc nhở Mục tiêu" FontWeight="Bold" FontSize="14" Foreground="#38BDF8" Margin="0,0,0,14"/>
+
+                                <!-- Bật/tắt hệ thống nhắc nhở -->
+                                <CheckBox IsChecked="{Binding ReminderEnabled, Mode=TwoWay}" Margin="0,0,0,12" Cursor="Hand">
+                                    <StackPanel Margin="6,0,0,0">
+                                        <TextBlock Text="Bật hệ thống nhắc nhở mục tiêu" FontWeight="SemiBold" Foreground="#F8FAFC"/>
+                                        <TextBlock Text="Tự động hiện thông báo khi đến giờ hẹn của mục tiêu" FontSize="11.5" Foreground="#94A3B8"/>
+                                    </StackPanel>
+                                </CheckBox>
+
+                                <!-- Âm thanh thông báo -->
+                                <CheckBox IsChecked="{Binding ReminderSoundEnabled, Mode=TwoWay}" Margin="0,0,0,12" Cursor="Hand"
+                                          IsEnabled="{Binding ReminderEnabled}">
+                                    <StackPanel Margin="6,0,0,0">
+                                        <TextBlock Text="Phát âm thanh chuông báo" FontWeight="SemiBold" Foreground="#F8FAFC"/>
+                                        <TextBlock Text="Phát âm thanh chuông hệ thống khi cửa sổ nhắc nhở xuất hiện" FontSize="11.5" Foreground="#94A3B8"/>
+                                    </StackPanel>
+                                </CheckBox>
+
+                                <!-- Nhắc trước (Early Reminder) -->
+                                <Grid Margin="0,0,0,12" IsEnabled="{Binding ReminderEnabled}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Nhắc nhở trước:" VerticalAlignment="Center" Foreground="#CBD5E1"/>
+                                    <ComboBox Grid.Column="1"
+                                              ItemsSource="{Binding EarlyReminderOptions}"
+                                              SelectedItem="{Binding EarlyReminderMinutes, Mode=TwoWay}"
+                                              Background="#1E293B" Foreground="#F8FAFC" Padding="8,6" Width="200" HorizontalAlignment="Left">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Converter={StaticResource EarlyConverter}}"/>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </Grid>
+
+                                <!-- Nhắc lặp lại nếu chưa bấm xong/hoãn -->
+                                <Grid Margin="0,0,0,12" IsEnabled="{Binding ReminderEnabled}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Nhắc lại chu kỳ:" VerticalAlignment="Center" Foreground="#CBD5E1"/>
+                                    <ComboBox Grid.Column="1"
+                                              ItemsSource="{Binding RepeatOptions}"
+                                              SelectedItem="{Binding RepeatReminderMinutes, Mode=TwoWay}"
+                                              Background="#1E293B" Foreground="#F8FAFC" Padding="8,6" Width="200" HorizontalAlignment="Left">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Converter={StaticResource RepeatConverter}}"/>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </Grid>
+
+                                <!-- Chế độ Không làm phiền (Do Not Disturb) -->
+                                <CheckBox IsChecked="{Binding DoNotDisturb, Mode=TwoWay}" Margin="0,0,0,4" Cursor="Hand">
+                                    <StackPanel Margin="6,0,0,0">
+                                        <TextBlock Text="Chế độ Không làm phiền (Do Not Disturb)" FontWeight="SemiBold" Foreground="#F8FAFC"/>
+                                        <TextBlock Text="Tạm ngừng toàn bộ cửa sổ nhắc nhở và âm thanh khi cần tập trung" FontSize="11.5" Foreground="#F59E0B"/>
+                                    </StackPanel>
+                                </CheckBox>
                             </StackPanel>
                         </Border>
                     </StackPanel>
