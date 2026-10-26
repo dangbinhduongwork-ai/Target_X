@@ -19,6 +19,7 @@ public class JsonGoalRepository : IGoalRepository
     private readonly string _goalsFilePath;
     private readonly string _settingsFilePath;
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly System.Threading.SemaphoreSlim _settingsLock = new(1, 1);
     private bool _needsV1MigrationBackup = false;
 
     public string BaseDirectory => _baseDirectory;
@@ -158,15 +159,17 @@ public class JsonGoalRepository : IGoalRepository
 
     public async Task<AppSettings> LoadSettingsAsync()
     {
-        if (!File.Exists(_settingsFilePath))
-        {
-            var defaultSettings = new AppSettings();
-            await SaveSettingsAsync(defaultSettings);
-            return defaultSettings;
-        }
-
+        await _settingsLock.WaitAsync();
         try
         {
+            if (!File.Exists(_settingsFilePath))
+            {
+                var defaultSettings = new AppSettings();
+                string jsonDefault = JsonSerializer.Serialize(defaultSettings, _jsonOptions);
+                await SafeWriteFileAsync(_settingsFilePath, jsonDefault);
+                return defaultSettings;
+            }
+
             string json = await File.ReadAllTextAsync(_settingsFilePath);
             if (string.IsNullOrWhiteSpace(json))
             {
@@ -186,12 +189,24 @@ public class JsonGoalRepository : IGoalRepository
             _logger.Error($"Lỗi khi đọc cấu hình từ '{_settingsFilePath}'", ex);
             return new AppSettings();
         }
+        finally
+        {
+            _settingsLock.Release();
+        }
     }
 
     public async Task SaveSettingsAsync(AppSettings settings)
     {
-        string json = JsonSerializer.Serialize(settings, _jsonOptions);
-        await SafeWriteFileAsync(_settingsFilePath, json);
+        await _settingsLock.WaitAsync();
+        try
+        {
+            string json = JsonSerializer.Serialize(settings, _jsonOptions);
+            await SafeWriteFileAsync(_settingsFilePath, json);
+        }
+        finally
+        {
+            _settingsLock.Release();
+        }
     }
 
     /// <summary>

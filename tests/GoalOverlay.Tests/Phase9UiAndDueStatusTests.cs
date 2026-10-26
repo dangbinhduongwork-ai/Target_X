@@ -257,7 +257,7 @@ public class Phase9UiAndDueStatusTests : IDisposable
     [Fact]
     public async Task MainViewModel_SaveEdit_UpdatesBothTextAndDueTime()
     {
-        var initialGoal = await _goalService.AddGoalAsync(GoalType.Daily, "Viết báo cáo", dueAt: null);
+        var initialGoal = await _goalService.AddDailyGoalAsync("Viết báo cáo", dueAt: null);
         var mainVm = new MainViewModel(_goalService, _repository, _clock, _logger, _autostart, _hotkey);
         await mainVm.InitializeAsync();
 
@@ -295,6 +295,9 @@ public class Phase9UiAndDueStatusTests : IDisposable
         mainVm.EarlyReminderMinutes = 10;
         mainVm.DoNotDisturb = true;
 
+        // Chờ tác vụ lưu ngầm hoàn tất trước khi đọc lại
+        await mainVm.LastSettingsSaveTask;
+
         // Tải lại trực tiếp từ repository
         var reloadedSettings = await _goalService.GetSettingsAsync();
         Assert.True(reloadedSettings.ReminderEnabled);
@@ -308,11 +311,11 @@ public class Phase9UiAndDueStatusTests : IDisposable
     public void ReminderConverters_ConvertFriendlyText()
     {
         var repeatConverter = new RepeatMinutesConverter();
-        Assert.Equal("Tắt nhắc lặp lại", repeatConverter.Convert(0, typeof(string), null, System.Globalization.CultureInfo.InvariantCulture));
-        Assert.Equal("Mỗi 15 phút", repeatConverter.Convert(15, typeof(string), null, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal("Tắt nhắc lặp lại", repeatConverter.Convert(0, typeof(string), null!, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal("Mỗi 15 phút", repeatConverter.Convert(15, typeof(string), null!, System.Globalization.CultureInfo.InvariantCulture));
 
         var earlyConverter = new EarlyMinutesConverter();
-        Assert.Equal("Đúng giờ mới nhắc", earlyConverter.Convert(0, typeof(string), null, System.Globalization.CultureInfo.InvariantCulture));
-        Assert.Equal("Trước 10 phút", earlyConverter.Convert(10, typeof(string), null, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal("Đúng giờ mới nhắc", earlyConverter.Convert(0, typeof(string), null!, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal("Trước 10 phút", earlyConverter.Convert(10, typeof(string), null!, System.Globalization.CultureInfo.InvariantCulture));
     }
 }

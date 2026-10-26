@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Win32;
 using GoalOverlay.Models;
+using GoalOverlay.ViewModels;
 
 namespace GoalOverlay.Services;
 

@@ -19,6 +19,11 @@ public class TestClock : IClock
         Now = initialTime;
     }
 
+    public void Set(DateTime time)
+    {
+        Now = time;
+    }
+
     public void SetTime(DateTime time)
     {
         Now = time;

@@ -441,6 +441,8 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
     partial void OnEarlyReminderMinutesChanged(int value) => ApplySettingsLive();
     partial void OnDoNotDisturbChanged(bool value) => ApplySettingsLive();
 
+    public Task LastSettingsSaveTask { get; private set; } = Task.CompletedTask;
+
     private void ApplySettingsLive()
     {
         if (_isInitializingSettings) return;
@@ -460,7 +462,7 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
             DoNotDisturb = DoNotDisturb
         };
 
-        _ = _goalService.SaveSettingsAsync(settings);
+        LastSettingsSaveTask = _goalService.SaveSettingsAsync(settings);
         WeakReferenceMessenger.Default.Send(new SettingsChangedMessage(settings));
     }
 

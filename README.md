@@ -4,7 +4,7 @@
 [![Version](https://img.shields.io/badge/Version-1.1.0-orange?logo=windows)](https://github.com/dangbinhduongwork-ai/Target_X/releases)
 [![WPF](https://img.shields.io/badge/UI-WPF%20XAML-purple)](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/)
 [![Architecture](https://img.shields.io/badge/Architecture-MVVM%20Toolkit-success)](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/)
-[![Tests](https://img.shields.io/badge/Tests-65%20Passed%20(100%25)-brightgreen)](https://github.com/dangbinhduongwork-ai/Target_X)
+[![Tests](https://img.shields.io/badge/Tests-96%20Passed%20(100%25)-brightgreen)](https://github.com/dangbinhduongwork-ai/Target_X)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-informational)](https://www.microsoft.com/windows)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 

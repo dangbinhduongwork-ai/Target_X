@@ -5,6 +5,8 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using CommunityToolkit.Mvvm.Messaging;
+using GoalOverlay.Models;
 using GoalOverlay.Native;
 using GoalOverlay.Services;
 using GoalOverlay.ViewModels;
@@ -152,7 +154,7 @@ public partial class App : Application
             // 8. Bắt đầu bộ định thời quét nhắc nhở mục tiêu (V1.1)
             ReminderService.GoalsReminderBatchDue += (s, args) =>
             {
-                ReminderWindow.ShowOrAddGoals(args.Goals, SettingsService.Settings, ReminderService, Clock);
+                ReminderWindow.ShowOrAddGoals(args.Goals, SettingsService.CurrentSettings, ReminderService, Clock);
             };
             ReminderService.Start();
 
@@ -211,21 +213,21 @@ public partial class App : Application
             {
                 Header = "🌙 Không làm phiền (Do Not Disturb)",
                 IsCheckable = true,
-                IsChecked = SettingsService.Settings.DoNotDisturb
+                IsChecked = SettingsService.CurrentSettings.DoNotDisturb
             };
             dndItem.Click += async (s, e) =>
             {
-                var settings = SettingsService.Settings;
+                var settings = SettingsService.CurrentSettings;
                 settings.DoNotDisturb = !settings.DoNotDisturb;
                 dndItem.IsChecked = settings.DoNotDisturb;
-                await GoalService.SaveSettingsAsync(settings);
-                CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new SettingsChangedMessage(settings));
+                await SettingsService.SaveSettingsAsync(settings);
+                WeakReferenceMessenger.Default.Send(new SettingsChangedMessage(settings));
             };
 
             // Đồng bộ trạng thái checkbox khi DND được thay đổi từ MainWindow
-            CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Register<SettingsChangedMessage>(this, (r, m) =>
+            WeakReferenceMessenger.Default.Register<App, SettingsChangedMessage>(this, (r, m) =>
             {
-                Dispatcher.BeginInvoke(() => { dndItem.IsChecked = m.Settings.DoNotDisturb; });
+                r.Dispatcher.BeginInvoke(() => { dndItem.IsChecked = m.Settings.DoNotDisturb; });
             });
 
             // Menu item: Kiểm tra nhắc nhở thử (popup demo)
@@ -247,7 +249,7 @@ public partial class App : Application
                         Type = GoalType.Daily
                     }
                 };
-                ReminderWindow.ShowOrAddGoals(demoGoals, SettingsService.Settings, ReminderService, Clock);
+                ReminderWindow.ShowOrAddGoals(demoGoals, SettingsService.CurrentSettings, ReminderService, Clock);
             };
 
             var settingsItem = new MenuItem { Header = "⚙️ Cài đặt" };

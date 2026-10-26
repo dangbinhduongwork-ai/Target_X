@@ -38,7 +38,7 @@ Tài liệu ghi nhận kết quả kiểm thử toàn diện cho ứng dụng **
 
 ## PHẦN 3: TỔNG HỢP BỘ KIỂM THỬ TỰ ĐỘNG (AUTOMATED UNIT TESTS)
 
-Dự án hiện có tổng cộng **65 Unit Tests** tự động phân bổ qua các bộ test độc lập trong `tests/GoalOverlay.Tests`:
+Dự án hiện có tổng cộng **96 Unit Tests** tự động phân bổ qua các bộ test độc lập trong `tests/GoalOverlay.Tests`:
 - `GoalServiceTests`: 15 tests (CRUD cơ bản, lọc ngày/tháng, carry-over hôm qua sang hôm nay, cắt khoảng trắng, giới hạn 120 ký tự, xử lý ID không tồn tại).
 - `JsonGoalRepositoryTests`: 7 tests (ghi file an toàn qua `.tmp` và `.bak`, đổi tên file json hỏng, đổi tên file settings hỏng, lưu và khôi phục cài đặt, khởi tạo thư mục %APPDATA%).
 - `AutostartServiceTests`: 6 tests (kiểm tra trạng thái qua Fake Registry, bật/tắt ghi Registry với cờ `--minimized`, cơ chế Self-healing tự cập nhật đường dẫn khi file exe di chuyển).
