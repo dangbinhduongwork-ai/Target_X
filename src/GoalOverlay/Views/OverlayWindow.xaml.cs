@@ -173,15 +173,18 @@ public partial class OverlayWindow : Window, IRecipient<SettingsChangedMessage>
         }
     }
 
+    private AppSettings? _cachedSettings;
+
     /// <summary>
     /// Nhận thông điệp thay đổi cài đặt từ MainWindow để cập nhật Live Preview tức thì
     /// </summary>
     public void Receive(SettingsChangedMessage message)
     {
+        _cachedSettings = message.Settings;
         if (_hWnd != IntPtr.Zero)
         {
             NativeMethods.SetClickThrough(_hWnd, message.Settings.ClickThrough);
-            Dispatcher.InvokeAsync(RepositionWindow);
+            Dispatcher.InvokeAsync(() => RepositionWindow(message.Settings));
         }
     }
 
@@ -189,8 +192,9 @@ public partial class OverlayWindow : Window, IRecipient<SettingsChangedMessage>
     {
         try
         {
+            _cachedSettings = App.SettingsService.CurrentSettings;
             await ViewModel.LoadGoalsCommand.ExecuteAsync(null);
-            RepositionWindow();
+            RepositionWindow(_cachedSettings);
             _topmostTimer.Start();
         }
         catch (Exception ex)
@@ -202,7 +206,7 @@ public partial class OverlayWindow : Window, IRecipient<SettingsChangedMessage>
     /// <summary>
     /// Tự động căn chỉnh vị trí ở góc trên bên phải của màn hình đã chọn, cách mép 16px
     /// </summary>
-    public void RepositionWindow()
+    public void RepositionWindow(AppSettings? customSettings = null)
     {
         if (_hWnd == IntPtr.Zero || ActualWidth <= 0 || ActualHeight <= 0)
         {
@@ -211,17 +215,89 @@ public partial class OverlayWindow : Window, IRecipient<SettingsChangedMessage>
 
         try
         {
-            var settings = App.SettingsService.CurrentSettings;
-            Rect workArea = NativeMethods.GetMonitorWorkArea(settings.MonitorIndex, this);
+            var settings = customSettings ?? _cachedSettings ?? App.SettingsService.CurrentSettings;
+            _cachedSettings = settings;
 
-            Point targetPos = OverlayPositionCalculator.CalculatePosition(
-                workArea,
-                ActualWidth,
-                ActualHeight,
-                settings.Corner);
+            var monitors = NativeMethods.GetOrderedMonitors(this);
+            if (monitors.Count > 0)
+            {
+                int index = Math.Clamp(settings.MonitorIndex, 0, monitors.Count - 1);
+                var selected = monitors[index];
 
-            Left = targetPos.X;
-            Top = targetPos.Y;
+                double targetDpiX = selected.DpiScaleX > 0 ? selected.DpiScaleX : 1.0;
+                double targetDpiY = selected.DpiScaleY > 0 ? selected.DpiScaleY : 1.0;
+
+                int physicalWidth = (int)Math.Round(ActualWidth * targetDpiX);
+                int physicalHeight = (int)Math.Round(ActualHeight * targetDpiY);
+                int physicalMargin = (int)Math.Round(OverlayPositionCalculator.DefaultMargin * targetDpiX);
+
+                int targetPhysicalX;
+                int targetPhysicalY;
+
+                switch (settings.Corner)
+                {
+                    case GoalOverlay.Models.ScreenCorner.TopLeft:
+                        targetPhysicalX = selected.Info.rcWork.Left + physicalMargin;
+                        targetPhysicalY = selected.Info.rcWork.Top + physicalMargin;
+                        break;
+                    case GoalOverlay.Models.ScreenCorner.BottomLeft:
+                        targetPhysicalX = selected.Info.rcWork.Left + physicalMargin;
+                        targetPhysicalY = selected.Info.rcWork.Bottom - physicalHeight - physicalMargin;
+                        break;
+                    case GoalOverlay.Models.ScreenCorner.BottomRight:
+                        targetPhysicalX = selected.Info.rcWork.Right - physicalWidth - physicalMargin;
+                        targetPhysicalY = selected.Info.rcWork.Bottom - physicalHeight - physicalMargin;
+                        break;
+                    case GoalOverlay.Models.ScreenCorner.TopRight:
+                    default:
+                        targetPhysicalX = selected.Info.rcWork.Right - physicalWidth - physicalMargin;
+                        targetPhysicalY = selected.Info.rcWork.Top + physicalMargin;
+                        break;
+                }
+
+                targetPhysicalX = Math.Max(selected.Info.rcWork.Left, targetPhysicalX);
+                targetPhysicalY = Math.Max(selected.Info.rcWork.Top, targetPhysicalY);
+
+                // Di chuyển HWND trực tiếp bằng Win32 SetWindowPos - tức thì và không bị WPF clamp giới hạn màn hình
+                NativeMethods.SetWindowPos(
+                    _hWnd,
+                    NativeMethods.HWND_TOPMOST,
+                    targetPhysicalX,
+                    targetPhysicalY,
+                    0, 0,
+                    NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_SHOWWINDOW);
+
+                // Cập nhật Left, Top trong WPF (đơn vị DIPs)
+                Rect workArea = OverlayPositionCalculator.ConvertPhysicalWorkAreaToDips(
+                    selected.Info.rcWork.Left,
+                    selected.Info.rcWork.Top,
+                    selected.Info.rcWork.Right,
+                    selected.Info.rcWork.Bottom,
+                    selected.DpiScaleX,
+                    selected.DpiScaleY);
+
+                Point targetPos = OverlayPositionCalculator.CalculatePosition(
+                    workArea,
+                    ActualWidth,
+                    ActualHeight,
+                    settings.Corner);
+
+                Left = targetPos.X;
+                Top = targetPos.Y;
+            }
+            else
+            {
+                Rect workArea = SystemParameters.WorkArea;
+                Point targetPos = OverlayPositionCalculator.CalculatePosition(
+                    workArea,
+                    ActualWidth,
+                    ActualHeight,
+                    settings.Corner);
+
+                Left = targetPos.X;
+                Top = targetPos.Y;
+                NativeMethods.SetTopmost(_hWnd);
+            }
         }
         catch (Exception ex)
         {

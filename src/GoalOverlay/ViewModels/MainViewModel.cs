@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using GoalOverlay.Models;
+using GoalOverlay.Native;
 using GoalOverlay.Services;
 
 namespace GoalOverlay.ViewModels;
@@ -180,10 +181,11 @@ public partial class MainViewModel : ObservableObject, IRecipient<GoalsChangedMe
     private void DetectMonitors()
     {
         AvailableMonitors.Clear();
-        // Cung cấp danh sách màn hình mặc định
-        AvailableMonitors.Add("Màn hình 1 (Chính)");
-        AvailableMonitors.Add("Màn hình 2");
-        AvailableMonitors.Add("Màn hình 3");
+        var monitorNames = NativeMethods.GetMonitorDisplayNames();
+        foreach (var name in monitorNames)
+        {
+            AvailableMonitors.Add(name);
+        }
 
         if (SelectedMonitorIndex >= AvailableMonitors.Count)
         {

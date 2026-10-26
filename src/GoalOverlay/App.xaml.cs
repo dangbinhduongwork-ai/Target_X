@@ -227,6 +227,7 @@ public partial class App : Application
             // Đồng bộ trạng thái checkbox khi DND được thay đổi từ MainWindow
             WeakReferenceMessenger.Default.Register<App, SettingsChangedMessage>(this, (r, m) =>
             {
+                SettingsService.UpdateCurrentSettings(m.Settings);
                 r.Dispatcher.BeginInvoke(() => { dndItem.IsChecked = m.Settings.DoNotDisturb; });
             });
 

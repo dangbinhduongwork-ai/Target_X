@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Media;
@@ -217,27 +218,110 @@ public static class NativeMethods
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
     }
 
-    /// <summary>
-    /// Lấy vùng làm việc (WorkArea) của màn hình được chỉ định theo monitorIndex,
-    /// quy đổi từ Physical Pixels của Win32 sang Device-Independent Pixels (DIPs) của WPF
-    /// </summary>
-    public static Rect GetMonitorWorkArea(int monitorIndex, Visual visual)
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr hMonitor, int dpiType, out uint dpiX, out uint dpiY);
+
+    public class DisplayMonitorInfo
     {
-        var monitors = new List<MONITORINFO>();
+        public IntPtr Handle { get; set; }
+        public MONITORINFO Info { get; set; }
+        public bool IsPrimary => (Info.dwFlags & 1) != 0;
+        public double DpiScaleX { get; set; } = 1.0;
+        public double DpiScaleY { get; set; } = 1.0;
+    }
+
+    /// <summary>
+    /// Lấy danh sách các màn hình được sắp xếp: Màn hình chính luôn ở vị trí 0, các màn hình phụ sắp theo tọa độ X tăng dần
+    /// </summary>
+    public static List<DisplayMonitorInfo> GetOrderedMonitors(Visual? visual = null)
+    {
+        var monitors = new List<DisplayMonitorInfo>();
 
         EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr hMon, IntPtr hdc, ref RECT rc, IntPtr data) =>
         {
             var mi = new MONITORINFO { cbSize = Marshal.SizeOf(typeof(MONITORINFO)) };
             if (GetMonitorInfo(hMon, ref mi))
             {
-                monitors.Add(mi);
+                double scaleX = 1.0;
+                double scaleY = 1.0;
+
+                try
+                {
+                    if (GetDpiForMonitor(hMon, 0, out uint dpiX, out uint dpiY) == 0 && dpiX > 0 && dpiY > 0)
+                    {
+                        scaleX = dpiX / 96.0;
+                        scaleY = dpiY / 96.0;
+                    }
+                    else if (visual != null)
+                    {
+                        DpiScale dpi = VisualTreeHelper.GetDpi(visual);
+                        scaleX = dpi.DpiScaleX > 0 ? dpi.DpiScaleX : 1.0;
+                        scaleY = dpi.DpiScaleY > 0 ? dpi.DpiScaleY : 1.0;
+                    }
+                }
+                catch
+                {
+                    if (visual != null)
+                    {
+                        DpiScale dpi = VisualTreeHelper.GetDpi(visual);
+                        scaleX = dpi.DpiScaleX > 0 ? dpi.DpiScaleX : 1.0;
+                        scaleY = dpi.DpiScaleY > 0 ? dpi.DpiScaleY : 1.0;
+                    }
+                }
+
+                monitors.Add(new DisplayMonitorInfo
+                {
+                    Handle = hMon,
+                    Info = mi,
+                    DpiScaleX = scaleX,
+                    DpiScaleY = scaleY
+                });
             }
             return true;
         }, IntPtr.Zero);
 
-        DpiScale dpi = VisualTreeHelper.GetDpi(visual);
-        double dpiX = dpi.DpiScaleX > 0 ? dpi.DpiScaleX : 1.0;
-        double dpiY = dpi.DpiScaleY > 0 ? dpi.DpiScaleY : 1.0;
+        // Màn hình chính luôn ở vị trí 0, các màn hình phụ được sắp xếp từ trái sang phải theo tọa độ X
+        return monitors
+            .OrderByDescending(m => m.IsPrimary)
+            .ThenBy(m => m.Info.rcMonitor.Left)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Lấy danh sách tên hiển thị thân thiện cho ComboBox chọn màn hình
+    /// </summary>
+    public static List<string> GetMonitorDisplayNames()
+    {
+        var monitors = GetOrderedMonitors();
+        var list = new List<string>();
+
+        for (int i = 0; i < monitors.Count; i++)
+        {
+            if (i == 0)
+            {
+                list.Add("Màn hình 1 (Chính)");
+            }
+            else
+            {
+                list.Add($"Màn hình {i + 1}");
+            }
+        }
+
+        if (list.Count == 0)
+        {
+            list.Add("Màn hình 1 (Chính)");
+        }
+
+        return list;
+    }
+
+    /// <summary>
+    /// Lấy vùng làm việc (WorkArea) của màn hình được chỉ định theo monitorIndex,
+    /// quy đổi từ Physical Pixels của Win32 sang Device-Independent Pixels (DIPs) của WPF
+    /// </summary>
+    public static Rect GetMonitorWorkArea(int monitorIndex, Visual visual)
+    {
+        var monitors = GetOrderedMonitors(visual);
 
         if (monitors.Count > 0)
         {
@@ -245,12 +329,12 @@ public static class NativeMethods
             var selected = monitors[index];
 
             return OverlayPositionCalculator.ConvertPhysicalWorkAreaToDips(
-                selected.rcWork.Left,
-                selected.rcWork.Top,
-                selected.rcWork.Right,
-                selected.rcWork.Bottom,
-                dpiX,
-                dpiY);
+                selected.Info.rcWork.Left,
+                selected.Info.rcWork.Top,
+                selected.Info.rcWork.Right,
+                selected.Info.rcWork.Bottom,
+                selected.DpiScaleX,
+                selected.DpiScaleY);
         }
 
         // Mặc định fallback về SystemParameters.WorkArea của màn hình chính

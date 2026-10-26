@@ -6,26 +6,24 @@
              mc:Ignorable="d">
 
     <UserControl.Resources>
-        <Style x:Key="TimeComboBoxStyle" TargetType="ComboBox">
+        <!-- Style ComboBox thừa kế từ DarkTheme với kích thước nhỏ gọn cho TimePicker -->
+        <Style x:Key="TimeComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
             <Setter Property="Background" Value="#0F172A"/>
-            <Setter Property="Foreground" Value="#F8FAFC"/>
             <Setter Property="BorderBrush" Value="#334155"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="FontSize" Value="12.5"/>
             <Setter Property="Height" Value="28"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="6,2"/>
         </Style>
 
         <Style x:Key="QuickPresetButton" TargetType="Button">
-            <Setter Property="Background" Value="#1E293B"/>
-            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="Background" Value="#0F172A"/>
+            <Setter Property="Foreground" Value="#CBD5E1"/>
             <Setter Property="BorderBrush" Value="#334155"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="5,2"/>
-            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="Margin" Value="0,0,5,0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -33,14 +31,14 @@
                         <Border x:Name="PresetBorder" Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="PresetBorder" Property="Background" Value="#334155"/>
+                                <Setter TargetName="PresetBorder" Property="Background" Value="#2563EB"/>
                                 <Setter TargetName="PresetBorder" Property="BorderBrush" Value="#60A5FA"/>
-                                <Setter Property="Foreground" Value="#F8FAFC"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -54,16 +52,16 @@
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Padding" Value="6,3"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="ClearBorder" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                        <Border x:Name="ClearBorder" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ClearBorder" Property="Background" Value="#332126"/>
+                                <Setter TargetName="ClearBorder" Property="Background" Value="#451A1A"/>
                                 <Setter Property="Foreground" Value="#EF4444"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -73,21 +71,21 @@
         </Style>
     </UserControl.Resources>
 
-    <Border Background="#1E293B" BorderBrush="#334155" BorderThickness="1" CornerRadius="8" Padding="6,4">
+    <Border Background="#1E293B" BorderBrush="#334155" BorderThickness="1" CornerRadius="10" Padding="8,6">
         <StackPanel Orientation="Vertical">
             <!-- Hàng 1: Chọn giờ : phút và nút xóa -->
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="🕒" FontSize="12" Foreground="#60A5FA" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <TextBlock Text="🕒" FontSize="12.5" Foreground="#60A5FA" VerticalAlignment="Center" Margin="0,0,6,0"/>
 
                 <!-- ComboBox Giờ (00 - 23) -->
-                <ComboBox x:Name="CmbHour" Style="{StaticResource TimeComboBoxStyle}" Width="48"
+                <ComboBox x:Name="CmbHour" Style="{StaticResource TimeComboBoxStyle}" Width="52"
                           SelectionChanged="CmbTime_SelectionChanged"
                           ToolTip="Chọn giờ (00-23)"/>
 
                 <TextBlock Text=":" FontSize="13" FontWeight="Bold" Foreground="#94A3B8" VerticalAlignment="Center" Margin="3,0,3,0"/>
 
                 <!-- ComboBox Phút (00 - 59, bước 5, cho gõ tay) -->
-                <ComboBox x:Name="CmbMinute" Style="{StaticResource TimeComboBoxStyle}" Width="52"
+                <ComboBox x:Name="CmbMinute" Style="{StaticResource TimeComboBoxStyle}" Width="56"
                           IsEditable="True"
                           SelectionChanged="CmbTime_SelectionChanged"
                           TextBoxBase.TextChanged="CmbMinute_TextChanged"
@@ -99,7 +97,7 @@
             </StackPanel>
 
             <!-- Hàng 2: 3 nút phím tắt nhanh (+15 phút, +1 giờ, 20:00) -->
-            <StackPanel Orientation="Horizontal" Margin="0,4,0,0" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" Margin="0,5,0,0" VerticalAlignment="Center">
                 <Button Style="{StaticResource QuickPresetButton}" Content="+15m" Click="BtnPlus15m_Click" ToolTip="Hẹn sau 15 phút nữa"/>
                 <Button Style="{StaticResource QuickPresetButton}" Content="+1h" Click="BtnPlus1h_Click" ToolTip="Hẹn sau 1 giờ nữa"/>
                 <Button Style="{StaticResource QuickPresetButton}" Content="20:00" Click="Btn2000_Click" ToolTip="Hẹn vào lúc 20:00 tối"/>

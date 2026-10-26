@@ -10,6 +10,7 @@ public interface ISettingsService
 {
     string SettingsFilePath { get; }
     AppSettings CurrentSettings { get; }
+    void UpdateCurrentSettings(AppSettings settings);
     Task<AppSettings> LoadSettingsAsync();
     Task<bool> SaveSettingsAsync(AppSettings settings);
 }

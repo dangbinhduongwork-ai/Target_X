@@ -14,7 +14,8 @@
         ShowInTaskbar="False"
         ShowActivated="False"
         ResizeMode="NoResize"
-        SizeToContent="WidthAndHeight">
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="Manual">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>

@@ -18,6 +18,11 @@ public class SettingsService : ISettingsService
     public string SettingsFilePath => _settingsFilePath;
     public AppSettings CurrentSettings { get; private set; } = new();
 
+    public void UpdateCurrentSettings(AppSettings settings)
+    {
+        CurrentSettings = settings;
+    }
+
     public SettingsService(ILoggerService logger)
     {
         _logger = logger;
