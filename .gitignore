@@ -1,0 +1,36 @@
+## Build and distribution directories
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+build/
+dist/
+
+## Visual Studio & IDE files
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+.vscode/
+
+## Test results
+[Tt]est[Rr]esults/
+*.trx
+*.coverage
+*.coveragexml
+
+## ReSharper and Rider
+_ReSharper*/
+*.DotSettings.user
+
+## OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+## App specific logs and local storage
+logs/
+*.log
+*.tmp

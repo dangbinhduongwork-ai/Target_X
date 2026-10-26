@@ -1,0 +1,313 @@
+<Window x:Class="GoalOverlay.Views.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="clr-namespace:GoalOverlay.Models"
+        mc:Ignorable="d"
+        Title="GoalOverlay HUD"
+        Width="320"
+        SizeToContent="Height"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <DropShadowEffect x:Key="HudShadow" BlurRadius="18" ShadowDepth="4" Direction="270" Color="#000000" Opacity="0.6"/>
+
+        <Style x:Key="IconButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="#F8FAFC"/>
+                    <Setter Property="Background" Value="#334155"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="QuickIncrementButton" TargetType="Button">
+            <Setter Property="Background" Value="#1E293B"/>
+            <Setter Property="Foreground" Value="#38BDF8"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Width" Value="24"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="12">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#38BDF8"/>
+                    <Setter Property="Foreground" Value="#0F172A"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="GoalCheckButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Circle" Width="18" Height="18" CornerRadius="9" BorderThickness="1.8" BorderBrush="#64748B" Background="Transparent">
+                            <Path x:Name="CheckMark" Data="M3,9 L7,13 L15,4" Stroke="White" StrokeThickness="2" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                                <Setter TargetName="Circle" Property="Background" Value="#10B981"/>
+                                <Setter TargetName="Circle" Property="BorderBrush" Value="#10B981"/>
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Circle" Property="BorderBrush" Value="#38BDF8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Margin="10"
+            Background="#141923"
+            Opacity="{Binding Opacity}"
+            CornerRadius="14"
+            BorderBrush="#2A3447"
+            BorderThickness="1.2"
+            Effect="{StaticResource HudShadow}">
+        <Grid Margin="14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="0,0,0,10" MouseLeftButtonDown="Header_MouseLeftButtonDown" Background="Transparent" Cursor="SizeAll">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🎯" FontSize="15" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="MỤC TIÊU" FontWeight="Bold" FontSize="13" Foreground="#E2E8F0" LetterSpacing="1" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Cursor="Arrow">
+                    <Button Style="{StaticResource IconButton}" Command="{Binding ToggleLockCommand}" ToolTip="Khóa / Mở khóa vị trí">
+                        <TextBlock Text="{Binding IsLocked, Converter={x:Null}}" FontWeight="SemiBold" FontSize="11">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="🔓"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsLocked}" Value="True">
+                                            <Setter Property="Text" Value="🔒"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Button>
+
+                    <Button Style="{StaticResource IconButton}" Command="{Binding ToggleCollapseCommand}" ToolTip="Thu gọn / Mở rộng" Margin="4,0,0,0">
+                        <TextBlock FontSize="10">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="▲"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsCollapsed}" Value="True">
+                                            <Setter Property="Text" Value="▼"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Button>
+
+                    <Button Style="{StaticResource IconButton}" Click="BtnOpenManager_Click" ToolTip="Mở quản lý mục tiêu" Margin="4,0,0,0">
+                        <TextBlock Text="⚙️" FontSize="11"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <StackPanel Grid.Row="1">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsCollapsed}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+
+                <TextBlock Text="HÀNG NGÀY" FontSize="10.5" FontWeight="SemiBold" Foreground="#64748B" LetterSpacing="0.8" Margin="0,4,0,6"/>
+                <ItemsControl ItemsSource="{Binding DailyGoals}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type models:GoalItem}">
+                            <Grid Margin="0,3,0,5">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Button Grid.Row="0" Grid.Column="0"
+                                        Style="{StaticResource GoalCheckButton}"
+                                        Command="{Binding DataContext.ToggleCompletedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        Margin="0,0,8,0" VerticalAlignment="Center"/>
+
+                                <TextBlock Grid.Row="0" Grid.Column="1"
+                                           Text="{Binding Title}"
+                                           FontSize="12"
+                                           Foreground="#F1F5F9"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                                                    <Setter Property="TextDecorations" Value="Strikethrough"/>
+                                                    <Setter Property="Foreground" Value="#64748B"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <TextBlock Grid.Row="0" Grid.Column="2"
+                                           Text="{Binding CurrentCount, StringFormat='{}{0}'}"
+                                           FontSize="11" Foreground="#94A3B8"
+                                           Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="0" Grid.Column="2"
+                                           Text="{Binding TargetCount, StringFormat='/\{0\}'}"
+                                           FontSize="11" Foreground="#64748B"
+                                           Margin="14,0,6,0" VerticalAlignment="Center"/>
+
+                                <Button Grid.Row="0" Grid.Column="3"
+                                        Content="+"
+                                        Style="{StaticResource QuickIncrementButton}"
+                                        Command="{Binding DataContext.IncrementProgressCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip="Tăng 1 đơn vị"/>
+
+                                <ProgressBar Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
+                                             Height="4"
+                                             Margin="0,4,0,0"
+                                             Minimum="0" Maximum="1"
+                                             Value="{Binding ProgressRatio, Mode=OneWay}"
+                                             BorderThickness="0"
+                                             Background="#1E293B"
+                                             Foreground="#38BDF8"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Separator Background="#242C3D" Margin="0,8,0,8"/>
+
+                <TextBlock Text="HÀNG THÁNG" FontSize="10.5" FontWeight="SemiBold" Foreground="#64748B" LetterSpacing="0.8" Margin="0,0,0,6"/>
+                <ItemsControl ItemsSource="{Binding MonthlyGoals}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type models:GoalItem}">
+                            <Grid Margin="0,3,0,5">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Button Grid.Row="0" Grid.Column="0"
+                                        Style="{StaticResource GoalCheckButton}"
+                                        Command="{Binding DataContext.ToggleCompletedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        Margin="0,0,8,0" VerticalAlignment="Center"/>
+
+                                <TextBlock Grid.Row="0" Grid.Column="1"
+                                           Text="{Binding Title}"
+                                           FontSize="12"
+                                           Foreground="#F1F5F9"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                                                    <Setter Property="TextDecorations" Value="Strikethrough"/>
+                                                    <Setter Property="Foreground" Value="#64748B"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <TextBlock Grid.Row="0" Grid.Column="2"
+                                           Text="{Binding CurrentCount, StringFormat='{}{0}'}"
+                                           FontSize="11" Foreground="#94A3B8"
+                                           Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Row="0" Grid.Column="2"
+                                           Text="{Binding TargetCount, StringFormat='/\{0\}'}"
+                                           FontSize="11" Foreground="#64748B"
+                                           Margin="14,0,6,0" VerticalAlignment="Center"/>
+
+                                <Button Grid.Row="0" Grid.Column="3"
+                                        Content="+"
+                                        Style="{StaticResource QuickIncrementButton}"
+                                        Command="{Binding DataContext.IncrementProgressCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip="Tăng 1 đơn vị"/>
+
+                                <ProgressBar Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
+                                             Height="4"
+                                             Margin="0,4,0,0"
+                                             Minimum="0" Maximum="1"
+                                             Value="{Binding ProgressRatio, Mode=OneWay}"
+                                             BorderThickness="0"
+                                             Background="#1E293B"
+                                             Foreground="#818CF8"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

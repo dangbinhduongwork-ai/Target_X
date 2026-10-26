@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>GoalOverlay</AssemblyName>
+    <Version>1.0.0</Version>
+    <Company>GoalOverlay</Company>
+    <Product>GoalOverlay</Product>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="H.NotifyIcon.Wpf" Version="2.1.4" />
+  </ItemGroup>
+
+  <!-- Đảm bảo file icon Assets\app.ico luôn tồn tại hợp lệ ở định dạng chuẩn Windows ICO -->
+  <Target Name="EnsureAppIcon" BeforeTargets="BeforeCompile;CoreCompile" Condition="!Exists('$(MSBuildProjectDirectory)\Assets\app.ico')">
+    <MakeDir Directories="$(MSBuildProjectDirectory)\Assets" />
+    <PropertyGroup>
+      <_IconB64>AAABAAEAECABAAEAIAAIBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAA////8/aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/9oI7//aCO//2gjv/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==</_IconB64>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(MSBuildProjectDirectory)\Assets\app.ico" Lines="" Overwrite="true" Condition="!Exists('$(MSBuildProjectDirectory)\Assets\app.ico')" />
+    <PropertyGroup>
+      <_Dummy>$([System.IO.File]::WriteAllBytes('$(MSBuildProjectDirectory)\Assets\app.ico', $([System.Convert]::FromBase64String('$(_IconB64)'))))</_Dummy>
+    </PropertyGroup>
+  </Target>
+
+</Project>

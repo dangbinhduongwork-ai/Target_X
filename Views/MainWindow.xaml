@@ -1,0 +1,107 @@
+<Window x:Class="GoalOverlay.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="GoalOverlay - Nền tảng Giai đoạn 1"
+        Height="540" Width="680"
+        WindowStartupLocation="CenterScreen"
+        Background="#0F172A"
+        Foreground="#F8FAFC">
+    <Window.Resources>
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="Background" Value="#3B82F6"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#2563EB"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+            <Setter Property="Background" Value="#334155"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#475569"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+            <TextBlock Text="🎯 GoalOverlay" FontSize="26" FontWeight="Bold" Foreground="#60A5FA"/>
+            <TextBlock Text="Kiểm tra &amp; Xác thực Hạ tầng Nền tảng (Giai đoạn 1: Core / Services / Logging)"
+                       FontSize="13" Foreground="#94A3B8" Margin="0,4,0,0"/>
+        </StackPanel>
+
+        <!-- Main Info Card -->
+        <Border Grid.Row="1" Background="#1E293B" CornerRadius="12" Padding="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Text="Trạng thái Các Dịch vụ &amp; Dữ liệu:" FontWeight="SemiBold" FontSize="15" Foreground="#E2E8F0" Margin="0,0,0,12"/>
+
+                    <Border Background="#0F172A" CornerRadius="8" Padding="12" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="📁 Thư mục Dữ liệu (%APPDATA%\GoalOverlay):" FontWeight="Bold" Foreground="#38BDF8"/>
+                            <TextBlock x:Name="TxtDataPath" Text="..." Foreground="#CBD5E1" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#0F172A" CornerRadius="8" Padding="12" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="📝 Thư mục Log (%APPDATA%\GoalOverlay\logs):" FontWeight="Bold" Foreground="#38BDF8"/>
+                            <TextBlock x:Name="TxtLogPath" Text="..." Foreground="#CBD5E1" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#0F172A" CornerRadius="8" Padding="12" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="📊 Dữ liệu Mục tiêu khởi tạo:" FontWeight="Bold" Foreground="#38BDF8"/>
+                            <TextBlock x:Name="TxtGoalsStatus" Text="..." Foreground="#CBD5E1" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#0F172A" CornerRadius="8" Padding="12" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="🚀 Tự khởi động cùng Windows (Registry HKCU):" FontWeight="Bold" Foreground="#38BDF8"/>
+                            <TextBlock x:Name="TxtStartupStatus" Text="..." Foreground="#CBD5E1" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock x:Name="TxtActionResult" Text="Sẵn sàng kiểm tra các chức năng." Foreground="#10B981" FontWeight="Medium" Margin="0,8,0,0"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Actions -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,16,0,0">
+            <Button Content="Mở thư mục AppData" Style="{StaticResource ModernButton}" Click="BtnOpenAppData_Click"/>
+            <Button Content="Ẩn / Hiện Overlay HUD" Style="{StaticResource SecondaryButton}" Click="BtnToggleOverlay_Click"/>
+            <Button Content="Ghi Log Thử nghiệm" Style="{StaticResource SecondaryButton}" Click="BtnTestLog_Click"/>
+            <Button Content="Đổi trạng thái AutoStart" Style="{StaticResource SecondaryButton}" Click="BtnToggleStartup_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
