@@ -150,6 +150,10 @@ public partial class App : Application
             InitializeTrayIcon();
 
             // 8. Bắt đầu bộ định thời quét nhắc nhở mục tiêu (V1.1)
+            ReminderService.GoalsReminderBatchDue += (s, args) =>
+            {
+                ReminderWindow.ShowOrAddGoals(args.Goals, SettingsService.Settings, ReminderService, Clock);
+            };
             ReminderService.Start();
 
             Logger.Info("Đã khởi tạo thành công Overlay, MainWindow, System Tray Icon và ReminderService.");
@@ -202,6 +206,50 @@ public partial class App : Application
             var toggleOverlayItem = new MenuItem { Header = "👁️ Ẩn/Hiện overlay (Ctrl+Alt+G)" };
             toggleOverlayItem.Click += (s, e) => OverlayWindow?.ToggleVisibility();
 
+            // Menu item: Không làm phiền (Do Not Disturb)
+            var dndItem = new MenuItem
+            {
+                Header = "🌙 Không làm phiền (Do Not Disturb)",
+                IsCheckable = true,
+                IsChecked = SettingsService.Settings.DoNotDisturb
+            };
+            dndItem.Click += async (s, e) =>
+            {
+                var settings = SettingsService.Settings;
+                settings.DoNotDisturb = !settings.DoNotDisturb;
+                dndItem.IsChecked = settings.DoNotDisturb;
+                await GoalService.SaveSettingsAsync(settings);
+                CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Send(new SettingsChangedMessage(settings));
+            };
+
+            // Đồng bộ trạng thái checkbox khi DND được thay đổi từ MainWindow
+            CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Register<SettingsChangedMessage>(this, (r, m) =>
+            {
+                Dispatcher.BeginInvoke(() => { dndItem.IsChecked = m.Settings.DoNotDisturb; });
+            });
+
+            // Menu item: Kiểm tra nhắc nhở thử (popup demo)
+            var testReminderItem = new MenuItem { Header = "🔔 Kiểm tra nhắc nhở thử" };
+            testReminderItem.Click += (s, e) =>
+            {
+                var demoGoals = new System.Collections.Generic.List<Goal>
+                {
+                    new Goal
+                    {
+                        Text = "Mục tiêu demo kiểm tra chuông nhắc nhở (Đúng giờ)",
+                        DueAt = Clock.Now,
+                        Type = GoalType.Daily
+                    },
+                    new Goal
+                    {
+                        Text = "Mục tiêu demo kiểm tra cảnh báo quá hạn (Đã quá 15 phút)",
+                        DueAt = Clock.Now.AddMinutes(-15),
+                        Type = GoalType.Daily
+                    }
+                };
+                ReminderWindow.ShowOrAddGoals(demoGoals, SettingsService.Settings, ReminderService, Clock);
+            };
+
             var settingsItem = new MenuItem { Header = "⚙️ Cài đặt" };
             settingsItem.Click += (s, e) =>
             {
@@ -214,6 +262,8 @@ public partial class App : Application
 
             contextMenu.Items.Add(openItem);
             contextMenu.Items.Add(toggleOverlayItem);
+            contextMenu.Items.Add(dndItem);
+            contextMenu.Items.Add(testReminderItem);
             contextMenu.Items.Add(settingsItem);
             contextMenu.Items.Add(new Separator());
             contextMenu.Items.Add(exitItem);
@@ -251,6 +301,7 @@ public partial class App : Application
 
             MainWindowInstance?.CloseExplicitly();
             OverlayWindow?.Close();
+            ReminderWindow.Current?.Close();
 
             if (_mutex != null)
             {

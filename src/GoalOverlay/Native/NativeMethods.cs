@@ -79,6 +79,26 @@ public static class NativeMethods
         int cy,
         uint uFlags);
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct FLASHWINFO
+    {
+        public uint cbSize;
+        public IntPtr hwnd;
+        public uint dwFlags;
+        public uint uCount;
+        public uint dwTimeout;
+    }
+
+    public const uint FLASHW_STOP = 0;
+    public const uint FLASHW_CAPTION = 1;
+    public const uint FLASHW_TRAY = 2;
+    public const uint FLASHW_ALL = 3;
+    public const uint FLASHW_TIMERNOFG = 12;
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool FlashWindowEx(ref FLASHWINFO pwfi);
+
     // Cấu trúc RECT của Win32
     [StructLayout(LayoutKind.Sequential)]
     public struct RECT
@@ -138,6 +158,36 @@ public static class NativeMethods
         IntPtr exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
         long newExStyle = exStyle.ToInt64() | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
         SetWindowLongPtr(hWnd, GWL_EXSTYLE, new IntPtr(newExStyle));
+    }
+
+    /// <summary>
+    /// Áp dụng cờ WS_EX_NOACTIVATE (không cướp focus bàn phím) cho cửa sổ thông báo
+    /// </summary>
+    public static void SetNoActivateOnly(IntPtr hWnd)
+    {
+        IntPtr exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
+        long newExStyle = exStyle.ToInt64() | WS_EX_NOACTIVATE;
+        SetWindowLongPtr(hWnd, GWL_EXSTYLE, new IntPtr(newExStyle));
+    }
+
+    /// <summary>
+    /// Nhấp nháy icon trên Taskbar để báo hiệu người dùng có lời nhắc nhở mới
+    /// </summary>
+    public static void FlashWindow(IntPtr hWnd)
+    {
+        try
+        {
+            var info = new FLASHWINFO
+            {
+                cbSize = (uint)Marshal.SizeOf(typeof(FLASHWINFO)),
+                hwnd = hWnd,
+                dwFlags = FLASHW_TRAY | FLASHW_TIMERNOFG,
+                uCount = 3,
+                dwTimeout = 0
+            };
+            FlashWindowEx(ref info);
+        }
+        catch { }
     }
 
     /// <summary>

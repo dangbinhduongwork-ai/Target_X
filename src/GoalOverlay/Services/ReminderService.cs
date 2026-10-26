@@ -3,15 +3,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Win32;
 using GoalOverlay.Models;
 
 namespace GoalOverlay.Services;
 
 /// <summary>
-/// Dịch vụ quản lý hẹn giờ và kích hoạt nhắc nhở khi đến giờ cho mục tiêu
-/// Đảm bảo 100% testable thông qua IClock dependency injection
+/// Dịch vụ quản lý hẹn giờ, quét định kỳ 10 giây và kích hoạt thông báo nhắc nhở khi đến giờ (ReminderScheduler)
+/// Đảm bảo:
+/// 1. 100% testable qua IClock injection
+/// 2. Hỗ trợ đầy đủ: Hẹn giờ chính (DueAt), Nhắc sớm (EarlyReminderMinutes), Nhắc lặp lại (RepeatReminderMinutes),
+///    Hoãn báo lại (Snooze), Bỏ qua (Dismiss)
+/// 3. Hỗ trợ chế độ Không làm phiền (Do Not Disturb - DND) với hàng chờ gom nhóm
+/// 4. Tự động kiểm tra lại ngay khi máy tỉnh giấc (Sleep Resume), đổi giờ hệ thống (TimeChanged), hoặc dữ liệu thay đổi
 /// </summary>
-public class ReminderService : IReminderService, IDisposable
+public class ReminderService : IReminderService, IDisposable, IRecipient<GoalsChangedMessage>, IRecipient<SettingsChangedMessage>
 {
     private readonly IGoalRepository _repository;
     private readonly IGoalService _goalService;
@@ -22,8 +29,14 @@ public class ReminderService : IReminderService, IDisposable
     private Timer? _timer;
     private int _isChecking = 0;
     private bool _isDisposed = false;
+    private bool _isStarted = false;
+    private bool _previousDndState = false;
+
+    // Danh sách mục tiêu đến hạn trong thời gian bật DND để gom hiển thị khi tắt DND
+    private readonly HashSet<Guid> _suppressedGoalIds = new();
 
     public event EventHandler<GoalReminderEventArgs>? GoalReminderDue;
+    public event EventHandler<GoalsReminderBatchEventArgs>? GoalsReminderBatchDue;
 
     public ReminderService(
         IGoalRepository repository,
@@ -44,21 +57,108 @@ public class ReminderService : IReminderService, IDisposable
         if (_isDisposed) return;
 
         Stop();
+
+        _isStarted = true;
         _timer = new Timer(async _ => await OnTimerTickAsync(), null, _pollInterval, _pollInterval);
+
+        // Đăng ký sự kiện hệ thống Windows
+        try
+        {
+            SystemEvents.PowerModeChanged += SystemEvents_PowerModeChanged;
+            SystemEvents.TimeChanged += SystemEvents_TimeChanged;
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn($"Không thể đăng ký SystemEvents trong ReminderService: {ex.Message}");
+        }
+
+        // Lắng nghe thông điệp dữ liệu thay đổi và cài đặt thay đổi
+        WeakReferenceMessenger.Default.Register<GoalsChangedMessage>(this);
+        WeakReferenceMessenger.Default.Register<SettingsChangedMessage>(this);
+
         _logger.Info($"Đã khởi động ReminderService (chu kỳ quét: {_pollInterval.TotalSeconds}s).");
+
+        // Quét ngay lần đầu tiên khi ứng dụng khởi động
+        TriggerCheck();
     }
 
     public void Stop()
     {
         _timer?.Dispose();
         _timer = null;
+
+        if (_isStarted)
+        {
+            try
+            {
+                SystemEvents.PowerModeChanged -= SystemEvents_PowerModeChanged;
+                SystemEvents.TimeChanged -= SystemEvents_TimeChanged;
+            }
+            catch { }
+
+            WeakReferenceMessenger.Default.UnregisterAll(this);
+            _isStarted = false;
+        }
+    }
+
+    private void SystemEvents_PowerModeChanged(object sender, PowerModeChangedEventArgs e)
+    {
+        if (e.Mode == PowerModes.Resume)
+        {
+            _logger.Info("[Hệ thống] Máy tính vừa thức dậy từ chế độ Sleep -> Kích hoạt kiểm tra nhắc nhở ngay.");
+            TriggerCheck();
+        }
+    }
+
+    private void SystemEvents_TimeChanged(object? sender, EventArgs e)
+    {
+        _logger.Info("[Hệ thống] Người dùng đã thay đổi giờ hệ thống Windows -> Kích hoạt kiểm tra nhắc nhở ngay.");
+        TriggerCheck();
+    }
+
+    public void Receive(GoalsChangedMessage message)
+    {
+        TriggerCheck();
+    }
+
+    public void Receive(SettingsChangedMessage message)
+    {
+        bool newDnd = message.Settings.DoNotDisturb;
+        if (_previousDndState && !newDnd)
+        {
+            _logger.Info("[Cài đặt] Chế độ Không làm phiền (DND) vừa được tắt -> Kích hoạt gom nhóm nhắc nhở ngay.");
+            TriggerCheck();
+        }
+        _previousDndState = newDnd;
+    }
+
+    public void TriggerCheck()
+    {
+        if (_isDisposed) return;
+
+        _ = Task.Run(async () =>
+        {
+            if (Interlocked.CompareExchange(ref _isChecking, 1, 0) != 0) return;
+            try
+            {
+                await CheckRemindersAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Lỗi khi TriggerCheck nhắc nhở mục tiêu", ex);
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _isChecking, 0);
+            }
+        });
     }
 
     private async Task OnTimerTickAsync()
     {
         if (Interlocked.CompareExchange(ref _isChecking, 1, 0) != 0)
         {
-            return; // Đang có tác vụ quét chạy dở, bỏ qua tick này
+            return;
         }
 
         try
@@ -81,6 +181,15 @@ public class ReminderService : IReminderService, IDisposable
 
         try
         {
+            var settings = await _goalService.GetSettingsAsync();
+            _previousDndState = settings.DoNotDisturb;
+
+            // Nếu người dùng tắt hoàn toàn hệ thống nhắc nhở -> Không nhắc mục nào
+            if (!settings.ReminderEnabled)
+            {
+                return Array.Empty<Goal>();
+            }
+
             var allGoals = await _repository.LoadGoalsAsync();
             DateTime now = _clock.Now;
             DateOnly today = _clock.Today;
@@ -88,19 +197,21 @@ public class ReminderService : IReminderService, IDisposable
 
             foreach (var goal in allGoals)
             {
-                // Chỉ nhắc các mục tiêu chưa hoàn thành và có cấu hình DueAt / ReminderTime
-                if (goal.IsDone || (!goal.DueAt.HasValue && !goal.ReminderTime.HasValue))
+                // Chỉ nhắc các mục chưa hoàn thành và CÓ giờ hẹn DueAt
+                if (goal.IsDone || !goal.DueAt.HasValue)
                 {
                     continue;
                 }
 
-                // Với mục tiêu hàng ngày: không nhắc mục tiêu ở các ngày tương lai
+                // Mục hàng ngày thuộc ngày tương lai: không nhắc trong ngày hôm nay
                 if (goal.Type == GoalType.Daily && goal.Date > today)
                 {
                     continue;
                 }
 
-                // 1. Kiểm tra trạng thái hoãn báo lại (Snooze)
+                DateTime dueAt = goal.DueAt.Value;
+
+                // 1. Kiểm tra trạng thái Hoãn báo lại (Snooze)
                 if (goal.SnoozedUntil.HasValue)
                 {
                     if (now >= goal.SnoozedUntil.Value)
@@ -108,43 +219,61 @@ public class ReminderService : IReminderService, IDisposable
                         dueGoals.Add(goal);
                         goal.LastNotifiedAt = now;
                         goal.NotifyCount++;
-                        goal.SnoozedUntil = null; // Đã kích hoạt báo lại xong, reset Snooze
+                        goal.SnoozedUntil = null; // Đã đến giờ hoãn, gỡ cờ Snooze
                         dataChanged = true;
                     }
                     continue;
                 }
 
-                // 2. Nếu người dùng đã đóng/bỏ qua (Dismiss) lời nhắc cho lần hẹn này thì bỏ qua
+                // 2. Nếu người dùng đã chọn Bỏ qua (Dismiss) cho mốc hẹn này -> Bỏ qua
                 if (goal.ReminderDismissed)
                 {
                     continue;
                 }
 
-                // 3. Kiểm tra giờ hẹn (DueAt hoặc ReminderTime)
-                DateTime targetDateTime;
-                if (goal.DueAt.HasValue)
+                // 3. Kiểm tra Nhắc sớm (Early Reminder) nếu cấu hình EarlyReminderMinutes > 0
+                if (settings.EarlyReminderMinutes > 0)
                 {
-                    targetDateTime = goal.DueAt.Value;
-                }
-                else
-                {
-                    DateOnly goalDate = goal.Type == GoalType.Daily ? goal.Date : today;
-                    targetDateTime = goalDate.ToDateTime(goal.ReminderTime!.Value);
+                    DateTime earlyTime = dueAt.AddMinutes(-settings.EarlyReminderMinutes);
+                    if (now >= earlyTime && now < dueAt)
+                    {
+                        // Chưa từng nhắc cho mốc sớm này
+                        bool alreadyRemindedEarly = goal.LastNotifiedAt.HasValue && goal.LastNotifiedAt.Value >= earlyTime;
+                        if (!alreadyRemindedEarly)
+                        {
+                            dueGoals.Add(goal);
+                            goal.LastNotifiedAt = now;
+                            goal.NotifyCount++;
+                            dataChanged = true;
+                            continue;
+                        }
+                    }
                 }
 
-                // Đã đến hoặc quá giờ hẹn (now >= targetDateTime)
-                if (now >= targetDateTime)
+                // 4. Kiểm tra Giờ hẹn chính (DueAt) và Nhắc lặp lại chu kỳ (RepeatReminderMinutes)
+                if (now >= dueAt)
                 {
-                    // Kiểm tra xem đã từng kích hoạt thông báo cho mốc targetDateTime này chưa
-                    bool alreadyRemindedForThisSlot = goal.LastNotifiedAt.HasValue &&
-                                                     goal.LastNotifiedAt.Value >= targetDateTime;
+                    // Lần nhắc đầu tiên khi đến hoặc quá giờ hẹn
+                    bool remindedAtOrAfterDue = goal.LastNotifiedAt.HasValue && goal.LastNotifiedAt.Value >= dueAt;
 
-                    if (!alreadyRemindedForThisSlot)
+                    if (!remindedAtOrAfterDue)
                     {
                         dueGoals.Add(goal);
                         goal.LastNotifiedAt = now;
                         goal.NotifyCount++;
                         dataChanged = true;
+                    }
+                    else if (settings.RepeatReminderMinutes > 0)
+                    {
+                        // Đã từng nhắc sau giờ hẹn, kiểm tra xem đã qua chu kỳ lặp lại chưa
+                        DateTime nextRepeatTime = goal.LastNotifiedAt!.Value.AddMinutes(settings.RepeatReminderMinutes);
+                        if (now >= nextRepeatTime)
+                        {
+                            dueGoals.Add(goal);
+                            goal.LastNotifiedAt = now;
+                            goal.NotifyCount++;
+                            dataChanged = true;
+                        }
                     }
                 }
             }
@@ -154,12 +283,49 @@ public class ReminderService : IReminderService, IDisposable
                 await _repository.SaveGoalsAsync(allGoals);
             }
 
-            // Kích hoạt sự kiện nhắc nhở cho từng mục tiêu đến hạn
-            foreach (var dueGoal in dueGoals)
+            // 5. Xử lý Chế độ Không làm phiền (Do Not Disturb - DND)
+            if (settings.DoNotDisturb)
             {
-                string timeDisplay = dueGoal.DueAt.HasValue ? dueGoal.DueAt.Value.ToString("HH:mm") : dueGoal.ReminderTime?.ToString() ?? string.Empty;
-                _logger.Info($"[Hẹn giờ] Mục tiêu '{dueGoal.Text}' đã đến giờ nhắc nhở ({timeDisplay}).");
-                GoalReminderDue?.Invoke(this, new GoalReminderEventArgs(dueGoal));
+                foreach (var g in dueGoals)
+                {
+                    _suppressedGoalIds.Add(g.Id);
+                }
+
+                if (dueGoals.Count > 0)
+                {
+                    _logger.Info($"[DND Bật] Đã tạm hoãn thông báo cho {dueGoals.Count} mục tiêu do chế độ Không làm phiền đang bật.");
+                }
+
+                return dueGoals;
+            }
+
+            // DND đang tắt: nếu trước đó có các mục bị hoãn trong hàng chờ DND, gom lại toàn bộ
+            if (_suppressedGoalIds.Count > 0)
+            {
+                foreach (var goalId in _suppressedGoalIds.ToList())
+                {
+                    var suppressed = allGoals.FirstOrDefault(g => g.Id == goalId && !g.IsDone);
+                    if (suppressed != null && !dueGoals.Any(d => d.Id == suppressed.Id))
+                    {
+                        dueGoals.Add(suppressed);
+                    }
+                }
+                _suppressedGoalIds.Clear();
+            }
+
+            // 6. Phát sự kiện nếu có mục tiêu đến hạn
+            if (dueGoals.Count > 0)
+            {
+                // Phát sự kiện đơn lẻ cho từng mục (tương thích ngược)
+                foreach (var dueGoal in dueGoals)
+                {
+                    string timeDisplay = dueGoal.DueAt.HasValue ? dueGoal.DueAt.Value.ToString("HH:mm") : string.Empty;
+                    _logger.Info($"[Nhắc nhở] Mục tiêu '{dueGoal.Text}' đến hạn ({timeDisplay}).");
+                    GoalReminderDue?.Invoke(this, new GoalReminderEventArgs(dueGoal));
+                }
+
+                // Phát sự kiện gom nhóm (để hiển thị trên MỘT ReminderWindow duy nhất)
+                GoalsReminderBatchDue?.Invoke(this, new GoalsReminderBatchEventArgs(dueGoals));
             }
         }
         catch (Exception ex)
@@ -181,7 +347,10 @@ public class ReminderService : IReminderService, IDisposable
                 target.SnoozedUntil = _clock.Now.Add(duration);
                 target.ReminderDismissed = false;
                 await _repository.SaveGoalsAsync(allGoals);
+                _suppressedGoalIds.Remove(goalId);
+
                 _logger.Info($"Mục tiêu '{target.Text}' được hoãn báo lại {duration.TotalMinutes} phút (đến: {target.SnoozedUntil}).");
+                WeakReferenceMessenger.Default.Send(new GoalsChangedMessage());
             }
         }
         catch (Exception ex)
@@ -201,7 +370,10 @@ public class ReminderService : IReminderService, IDisposable
                 target.ReminderDismissed = true;
                 target.SnoozedUntil = null;
                 await _repository.SaveGoalsAsync(allGoals);
+                _suppressedGoalIds.Remove(goalId);
+
                 _logger.Info($"Đã đóng/bỏ qua lời nhắc cho mục tiêu '{target.Text}'.");
+                WeakReferenceMessenger.Default.Send(new GoalsChangedMessage());
             }
         }
         catch (Exception ex)
@@ -214,16 +386,10 @@ public class ReminderService : IReminderService, IDisposable
     {
         try
         {
-            var allGoals = await _repository.LoadGoalsAsync();
-            var target = allGoals.FirstOrDefault(g => g.Id == goalId);
-            if (target != null)
-            {
-                target.IsDone = true;
-                target.SnoozedUntil = null;
-                target.ReminderDismissed = true;
-                await _repository.SaveGoalsAsync(allGoals);
-                _logger.Info($"Mục tiêu '{target.Text}' đã được đánh dấu hoàn thành từ lời nhắc.");
-            }
+            await _goalService.MarkDoneAsync(goalId, true);
+            _suppressedGoalIds.Remove(goalId);
+            _logger.Info($"Mục tiêu {goalId} đã được đánh dấu hoàn thành từ cửa sổ nhắc nhở.");
+            WeakReferenceMessenger.Default.Send(new GoalsChangedMessage());
         }
         catch (Exception ex)
         {
