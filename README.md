@@ -1,69 +1,104 @@
 # GoalOverlay 🎯
 
 [![.NET 8.0](https://img.shields.io/badge/.NET-8.0--windows-blue?logo=dotnet)](https://dotnet.microsoft.com/)
+[![Version](https://img.shields.io/badge/Version-1.1.0-orange?logo=windows)](https://github.com/dangbinhduongwork-ai/Target_X/releases)
 [![WPF](https://img.shields.io/badge/UI-WPF%20XAML-purple)](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/)
 [![Architecture](https://img.shields.io/badge/Architecture-MVVM%20Toolkit-success)](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/)
-[![Tests](https://img.shields.io/badge/Tests-39%20Passed%20(100%25)-brightgreen)](https://github.com/dangbinhduongwork-ai/Target_X)
+[![Tests](https://img.shields.io/badge/Tests-65%20Passed%20(100%25)-brightgreen)](https://github.com/dangbinhduongwork-ai/Target_X)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-informational)](https://www.microsoft.com/windows)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**GoalOverlay** là ứng dụng Windows Desktop hiện đại, tối giản và hiệu suất cao, giúp hiển thị các mục tiêu hàng ngày (*Daily Goals*) và hàng tháng (*Monthly Goals*) dưới dạng HUD Overlay bán trong suốt ở góc trên bên phải màn hình. Ứng dụng luôn hiển thị trên mọi phần mềm khác (`Topmost`), không cướp focus bàn phím, tự khởi động ngầm cùng Windows và cung cấp giao diện quản lý CRUD trực quan.
+**GoalOverlay** là ứng dụng Windows Desktop hiện đại, tối giản và hiệu suất cao, giúp hiển thị các mục tiêu hàng ngày (*Daily Goals*) và hàng tháng (*Monthly Goals*) dưới dạng HUD Overlay bán trong suốt ở góc trên bên phải màn hình. Ứng dụng luôn hiển thị trên mọi phần mềm khác (`Topmost`), không cướp focus bàn phím, tự khởi động ngầm cùng Windows, tích hợp hệ thống hẹn giờ thông minh và cửa sổ nhắc nhở tự động.
 
 ---
 
 ## ✨ Tính năng Nổi bật
 
-- 📌 **HUD Overlay ghim màn hình**: Nổi trên mọi ứng dụng (Chrome, Word, Excel, Video borderless), tự căn chỉnh theo DPI (PerMonitorV2) và cách mép 16px.
+### 1. Nền tảng HUD Overlay Cốt lõi (V1.0)
+- 📌 **HUD Overlay ghim màn hình**: Nổi trên mọi ứng dụng (Chrome, Word, Excel, Video borderless), tự căn chỉnh theo DPI (PerMonitorV2) và cách mép màn hình 16px.
 - ⚡ **Không cướp Focus (`WS_EX_NOACTIVATE`)**: Thao tác nhấp chuột trên Overlay không bao giờ làm mất con trỏ soạn thảo hoặc gián đoạn công việc ở các phần mềm khác.
 - 🖱️ **Chế độ Click-Through (`WS_EX_TRANSPARENT`)**: Cho phép click chuột xuyên thấu qua Overlay tới ứng dụng nằm bên dưới.
 - 🎨 **Live Preview thời gian thực**: Tùy chỉnh độ trong suốt (20% - 100%), cỡ chữ (11px - 20px), màu chữ (Trắng, Cyan, Vàng, Xanh lá, Hồng) và phản chiếu ngay lập tức lên Overlay.
 - 🔄 **Tự chuyển tiếp mục tiêu chưa xong (Carry-over)**: Tự động dời các mục tiêu chưa hoàn thành của hôm qua sang hôm nay khi bước qua 00:00 nửa đêm.
-- ⌨️ **Phím tắt toàn cục (Global Hotkey)**: Nhấn **`Ctrl + Alt + G`** từ bất kỳ ứng dụng nào để ẩn hoặc hiện nhanh Overlay.
-- 🔔 **Khay hệ thống (System Tray)**: Tích hợp menu chuột phải đầy đủ (*Mở quản lý, Ẩn/Hiện overlay, Cài đặt, Thoát*). Bấm nút X chỉ ẩn xuống khay hệ thống, không tắt app.
-- 🛡️ **SingleInstanceGuard**: Sử dụng `Mutex` ngăn chạy trùng lặp; khởi động lần 2 sẽ tự động đưa cửa sổ quản lý của phiên bản đang chạy lên phía trước.
-- 🚀 **Tự khởi động cùng Windows**: Tự đăng ký Registry Run với cờ `--minimized` (chỉ hiện Overlay và khay hệ thống, không bật cửa sổ quản lý). Hỗ trợ cơ chế tự sửa đường dẫn (*Self-healing*) nếu người dùng di chuyển file exe.
+- ⌨️ **Phím tắt toàn cục (Global Hotkey)**:
+  - **`Ctrl + Alt + G`**: Ẩn hoặc hiện nhanh Overlay từ bất kỳ ứng dụng nào.
+  - **`Ctrl + Alt + M`**: Mở ngay cửa sổ Quản lý mục tiêu.
+- 🔔 **Khay hệ thống (System Tray)**: Tích hợp menu chuột phải đầy đủ (*Mở quản lý, Ẩn/Hiện overlay, Không làm phiền, Kiểm tra nhắc nhở thử, Cài đặt, Thoát*).
+- 🛡️ **SingleInstanceGuard**: Sử dụng `Mutex` và Windows Message / EventWaitHandle ngăn chạy trùng lặp; khởi động lần 2 sẽ tự động kích hoạt cửa sổ quản lý hiện tại.
+- 🚀 **Tự khởi động cùng Windows**: Tự đăng ký Registry Run với cờ `--minimized` kèm cơ chế tự sửa đường dẫn (*Self-healing*).
 - 💾 **Lưu trữ an toàn tuyệt đối**: Ghi file an toàn 2 bước (`.tmp` -> `File.Replace` -> `.bak`). Tự động cô lập file hỏng (`.corrupt-<timestamp>`) và không bao giờ crash.
+
+### 2. Hệ thống Hẹn giờ & Cửa sổ Nhắc nhở Thông minh (Mới trong V1.1)
+- 🕒 **Bộ chọn giờ tùy chỉnh (TimePickerBox)**: 2 ComboBox giờ (00–23) và phút (00–59 bước 5, cho phép gõ tay), nút xóa giờ nhanh `✕`, cùng 3 phím tắt tiện lợi: `+15m`, `+1h`, `20:00`.
+- 🏷️ **Badge màu sắc trạng thái thời gian thực trên HUD**:
+  - 🔵 **Xanh chuẩn (`#60A5FA`)**: Bình thường (còn hơn 30 phút là đến hạn).
+  - 🟡 **Vàng cảnh báo (`#F59E0B`)**: Sắp đến hạn (còn dưới 30 phút).
+  - 🔴 **Đỏ báo động (`#EF4444`)**: Đã quá hạn mà chưa hoàn thành.
+  - ⚪ **Xám mờ + Gạch ngang (`#94A3B8`)**: Đã hoàn thành.
+  - Tự động làm mới màu sắc mỗi 30 giây mà **hoàn toàn không giành focus** của người dùng.
+- 🔔 **Cửa sổ Nhắc nhở Nổi bật (ReminderWindow)**:
+  - Tự động gom nhóm toàn bộ các mục đến hạn trong cùng một thời điểm vào **MỘT cửa sổ duy nhất**.
+  - Nếu cửa sổ đang mở, mục mới đến hạn sẽ tự động được nối thêm vào danh sách.
+  - Căn giữa màn hình làm việc (WorkArea) chuẩn DPI.
+  - Cờ Win32 `WS_EX_NOACTIVATE` giúp bạn tiếp tục gõ chữ trên Word/Notepad mà **không bị mất con trỏ soạn thảo**.
+  - **Cơ chế chống bấm nhầm (Safety Guard)**: Vô hiệu hóa phím `Enter` và `Space` trong **1.5 giây đầu tiên** khi cửa sổ vừa xuất hiện.
+  - 3 nút hành động tiện lợi cho mỗi mục:
+    - `[✓ Đã hoàn thành]`: Cập nhật ngay lập tức lên Overlay HUD và file dữ liệu.
+    - `[⏰ Nhắc lại sau ▾]`: Menu chọn nhanh hoãn báo lại `5 phút`, `10 phút`, `30 phút`, hoặc `60 phút`.
+    - `[✕ Bỏ qua]`: Bỏ qua thông báo cho lần hẹn này.
+  - Cửa sổ tự động đóng lại khi người dùng đã xử lý xong toàn bộ các mục trong danh sách.
+- 🌙 **Chế độ Không làm phiền (Do Not Disturb - DND)**:
+  - Khi bật DND, toàn bộ thông báo popup và âm thanh sẽ được tạm dừng mà vẫn ghi nhận trạng thái đến hạn vào hàng chờ ngầm.
+  - Ngay khi tắt DND, một cửa sổ gom nhóm sẽ lập tức xuất hiện hiển thị các mục tiêu đang chờ.
+- ⚙️ **Tùy chỉnh Nhắc nhở Linh hoạt**:
+  - Tùy chọn Bật/Tắt âm thanh chuông báo hệ thống.
+  - Nhắc nhở sớm trước thời hạn (`EarlyReminderMinutes`: 5, 10, 15, 30 phút).
+  - Nhắc nhở lặp lại chu kỳ nếu chưa hoàn thành (`RepeatReminderMinutes`: 5, 10, 15, 30 phút).
 
 ---
 
 ## 📥 Tải về & Cài đặt
 
-### Cách 1: Sử dụng bộ cài đặt tự động (Khuyên dùng)
-1. Tải file **`GoalOverlay-Setup.exe`** từ mục [Releases](https://github.com/dangbinhduongwork-ai/Target_X/releases) (hoặc tự đóng gói từ mã nguồn).
+### Cách 1: Sử dụng bộ cài đặt Setup (Khuyên dùng)
+1. Tải file **`GoalOverlay-Setup.exe`** từ mục [Releases](https://github.com/dangbinhduongwork-ai/Target_X/releases).
 2. Chạy file cài đặt:
-   - Ứng dụng được cài đặt vào `%LOCALAPPDATA%\Programs\GoalOverlay` theo chuẩn hiện đại.
+   - Cài đặt vào `%LOCALAPPDATA%\Programs\GoalOverlay` theo chuẩn hiện đại.
    - **Không yêu cầu quyền Quản trị viên (UAC Administrator)** - cài đặt 1-click nhanh chóng.
-   - Tự động tạo Shortcut trong Start Menu và Desktop (tùy chọn).
-   - Tùy chọn bật "Khởi động cùng Windows".
+   - Hỗ trợ **cài đè trực tiếp lên V1.0** mà vẫn bảo toàn 100% dữ liệu mục tiêu và cấu hình khởi động.
+   - Tự động tạo Shortcut trong Start Menu và Desktop.
 
 ### Cách 2: Sử dụng bản Portable (Chạy trực tiếp)
-- Tải file **`GoalOverlay.exe`** (Single-file Self-contained) và chạy ngay mà không cần cài đặt. Toàn bộ .NET Runtime đã được nhúng sẵn.
+- Tải file **`GoalOverlay-v1.1.0-win-x64-portable.zip`**, giải nén và chạy file `GoalOverlay.exe` ngay mà không cần cài đặt. Toàn bộ .NET Runtime đã được nhúng sẵn.
 
 ---
 
 ## 📖 Hướng dẫn Sử dụng
 
 ### 1. Quản lý mục tiêu (MainWindow)
-- **Thêm mục tiêu mới**: Nhập nội dung vào ô nhập liệu và nhấn phím **Enter** (hoặc bấm nút `+ Thêm`). Nội dung tối đa 120 ký tự, tự động cắt khoảng trắng thừa.
-- **Hoàn thành mục tiêu**: Nhấp chuột vào ô tròn Checkbox. Mục tiêu hoàn thành sẽ có đường gạch ngang mờ và thanh tiến độ tự cập nhật.
-- **Sửa nhanh tại chỗ (In-place Edit)**: Nhấp đúp chuột (**Double-click**) vào dòng chữ mục tiêu -> gõ nội dung mới -> nhấn **Enter** để lưu (hoặc **Escape** để hủy).
-- **Kéo thả sắp xếp thứ tự**: Nhấn giữ chuột vào biểu tượng tay cầm `⠿` ở đầu mỗi dòng và kéo đến vị trí mong muốn.
-- **Xóa mục tiêu**: Bấm nút `✕` màu đỏ ở bên phải mỗi dòng.
+- **Thêm mục tiêu có hẹn giờ**:
+  - Tab "Hôm nay": Nhập nội dung, chọn giờ hẹn qua `TimePickerBox` (hoặc bấm `+15m`, `+1h`, `20:00`) -> Nhấn **Enter** hoặc bấm `+ Thêm`.
+  - Nếu chọn giờ đã qua trong ngày, ứng dụng sẽ hiện cảnh báo nhỏ *"⚠️ Giờ này đã qua, sẽ nhắc ngay khi lưu"* nhưng vẫn cho phép lưu.
+  - Tab "Tháng này": Chọn ngày hạn chót trong DatePicker và giờ hẹn tùy chọn trong `TimePickerBox`.
+- **Sửa nhanh tại chỗ (In-place Edit)**:
+  - Nhấp đúp chuột (**Double-click**) vào dòng mục tiêu -> khung sửa xuất hiện cho phép sửa cả nội dung văn bản, ngày hạn và giờ hẹn -> bấm `✓` để lưu (hoặc `✕` để hủy).
+- **Kéo thả sắp xếp thứ tự**: Nhấn giữ biểu tượng tay cầm `⠿` ở đầu dòng và kéo thả đến vị trí mong muốn.
 
-### 2. Các cách mở giao diện Quản lý khi phần mềm đang chạy
-1. **Trực tiếp trên Overlay HUD**:
-   - Bấm nút **`➕ Thêm`** ở góc trên bên phải HUD: Mở ngay cửa sổ và focus sẵn vào ô nhập mục tiêu.
-   - Bấm nút **`⚙️`**: Mở cửa sổ quản lý và chuyển thẳng đến tab Cài đặt.
-   - **Nhấp đúp chuột (Double-click)** vào bất kỳ vị trí nào trên thẻ HUD: Mở ngay cửa sổ quản lý.
-   - **Chuột phải (Right-click)** vào HUD: Mở menu ngữ cảnh nhanh để thêm mục tiêu hôm nay, mục tiêu tháng này, hoặc cài đặt.
-2. **Phím tắt toàn cục (Global Hotkey)**:
-   - **`Ctrl + Alt + M`**: Mở ngay cửa sổ Quản lý mục tiêu từ bất kỳ ứng dụng nào trên Windows.
-   - **`Ctrl + Alt + G`**: Ẩn hoặc hiện nhanh cửa sổ HUD Overlay.
-3. **Mở từ Desktop / Start Menu**:
-   - Khi ứng dụng đang chạy ngầm, bạn chỉ cần nhấp đúp vào icon **GoalOverlay** trên Desktop hoặc Start Menu, cửa sổ quản lý sẽ tự động được đưa lên trên cùng (Single Instance Guard).
-4. **Từ Khay hệ thống (System Tray Icon)**:
-   - **Nhấp đúp hoặc nhấp chuột trái** vào biểu tượng GoalOverlay ở góc đồng hồ taskbar.
-   - **Nhấp chuột phải** chọn **`🎯 Mở quản lý`**.
+### 2. Tương tác với Cửa sổ Nhắc nhở (ReminderWindow)
+- Khi đến giờ hẹn (hoặc đến mốc nhắc sớm), cửa sổ sẽ tự động nổi lên ở giữa màn hình cùng âm thanh chuông báo và icon Taskbar nhấp nháy.
+- Thao tác xử lý:
+  - Bấm `[✓ Đã hoàn thành]`: Mục tiêu được đánh dấu xong ngay lập tức trên HUD.
+  - Bấm `[⏰ Nhắc lại sau ▾]`: Chọn thời gian hoãn (5, 10, 30, 60 phút).
+  - Bấm `[✕ Bỏ qua]`: Bỏ qua lời nhắc cho chu kỳ này.
+  - Sau khi xử lý hết mọi mục, cửa sổ sẽ tự động đóng lại.
+
+### 3. Khay hệ thống (System Tray Menu)
+- Nhấp chuột phải vào icon GoalOverlay ở khay hệ thống góc phải taskbar:
+  - **`🎯 Mở quản lý`**: Mở cửa sổ chính.
+  - **`👁️ Ẩn/Hiện overlay`**: Bật/tắt nhanh HUD (Ctrl + Alt + G).
+  - **`🌙 Không làm phiền (Do Not Disturb)`**: Bật/tắt nhanh chế độ im lặng.
+  - **`🔔 Kiểm tra nhắc nhở thử`**: Bật ngay một cửa sổ popup demo 2 mục tiêu để trải nghiệm tính năng.
+  - **`⚙️ Cài đặt`**: Chuyển thẳng đến tab Cài đặt.
+  - **`❌ Thoát`**: Đóng hoàn toàn ứng dụng.
 
 ---
 
@@ -80,33 +115,21 @@
 ### Các lệnh thực thi (PowerShell):
 
 ```powershell
-# 1. Chạy toàn bộ 39 bài kiểm thử Unit Test (xUnit)
+# 1. Chạy toàn bộ 65 bài kiểm thử Unit Test (xUnit)
 dotnet test GoalOverlay.sln
 
 # 2. Chạy ứng dụng trực tiếp từ mã nguồn
 dotnet run --project src/GoalOverlay/GoalOverlay.csproj
 
-# 3. Publish bản phát hành độc lập (Single-file Self-contained)
+# 3. Publish bản phát hành Release x64 Single-file
 dotnet publish src/GoalOverlay/GoalOverlay.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o src/GoalOverlay/bin/Release/net8.0-windows/win-x64/publish
 
-# 4. Tự động biên dịch và đóng gói bộ cài đặt Inno Setup
+# 4. Tự động kiểm thử, biên dịch và đóng gói Installer Setup + Portable ZIP
 powershell -ExecutionPolicy Bypass -File installer/build_installer.ps1
 ```
-> Kết quả bộ cài đặt sẽ được tạo tại: `installer/output/GoalOverlay-Setup.exe`.
-
----
-
-## 🗑️ Hướng dẫn Gỡ cài đặt Sạch sẽ (Clean Uninstall)
-
-1. Mở **Windows Settings** (`Win + I`) -> **Apps** -> **Installed apps** (hoặc mở *Control Panel > Programs and Features*).
-2. Tìm **GoalOverlay** và chọn **Uninstall**.
-3. Trình gỡ cài đặt sẽ tự động:
-   - Đóng tiến trình GoalOverlay nếu đang chạy ngầm.
-   - Xóa bỏ khóa khởi động trong Registry (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`).
-   - Xóa toàn bộ file thực thi và lối tắt Start Menu / Desktop.
-   - **Hộp thoại xác nhận**: Hỏi người dùng *"Bạn có muốn xóa toàn bộ dữ liệu mục tiêu và cấu hình cá nhân tại %APPDATA%\GoalOverlay không?"*:
-     - Chọn **Yes**: Xóa sạch toàn bộ dữ liệu, logs và backups không để lại rác trên máy tính.
-     - Chọn **No**: Giữ lại file mục tiêu phòng trường hợp bạn muốn cài lại trong tương lai.
+> Kết quả đóng gói sẽ được tạo tại thư mục `installer/output/`:
+> - `GoalOverlay-Setup.exe` (Bộ cài đặt Windows tự động)
+> - `GoalOverlay-v1.1.0-win-x64-portable.zip` (Bản chạy trực tiếp không cần cài đặt)
 
 ---
 
@@ -114,57 +137,38 @@ powershell -ExecutionPolicy Bypass -File installer/build_installer.ps1
 
 ```
 Target_X/
-├── GoalOverlay.sln               # Visual Studio Solution File
+├── GoalOverlay.sln               # Solution Visual Studio
 ├── README.md                     # Tài liệu hướng dẫn sử dụng & phát triển
-├── .editorconfig                 # Tiêu chuẩn định dạng mã nguồn .NET
-├── .gitignore                    # Cấu hình bỏ qua tệp tạm Git
 ├── docs/
-│   └── TEST-CHECKLIST.md         # Bảng kiểm thử toàn diện 8 kịch bản (100% PASS)
+│   └── TEST-CHECKLIST.md         # Bảng kiểm thử nghiệm thu 18 kịch bản V1.0 & V1.1 (100% PASS)
 ├── src/
 │   └── GoalOverlay/              # Dự án WPF Desktop chính (.NET 8 Windows)
-│       ├── app.manifest          # Khai báo PerMonitorV2 DPI awareness & asInvoker
-│       ├── EnsureIcon.ps1        # Kịch bản tự động khởi tạo app.ico hợp lệ
 │       ├── Assets/               # Biểu tượng ứng dụng (app.ico)
-│       ├── Models/               # Mô hình dữ liệu (Goal, GoalType, AppSettings, ScreenCorner)
-│       ├── Services/             # Logic nghiệp vụ (GoalService, AutostartService, HotkeyService, Repositories)
-│       ├── ViewModels/           # Logic giao diện MVVM (MainViewModel, OverlayViewModel, GoalItemViewModel)
-│       ├── Views/                # Giao diện XAML (MainWindow, OverlayWindow)
+│       ├── Models/               # Mô hình dữ liệu (Goal, GoalDueStatus, AppSettings, ScreenCorner)
+│       ├── Services/             # Logic nghiệp vụ (GoalService, ReminderService, AutostartService, Repositories)
+│       ├── ViewModels/           # Logic giao diện MVVM (MainViewModel, OverlayViewModel, ReminderWindowViewModel)
+│       ├── Views/
+│       │   ├── MainWindow.xaml   # Cửa sổ quản lý mục tiêu & Cài đặt
+│       │   ├── OverlayWindow.xaml# Cửa sổ HUD Overlay ghim góc màn hình
+│       │   ├── ReminderWindow.xaml # Cửa sổ nhắc nhở đến giờ (NoActivate, Safety Guard)
+│       │   ├── Controls/         # UserControl chọn giờ tùy chỉnh (TimePickerBox)
+│       │   └── Converters/       # Value converters (Minutes, Visibility, Colors)
 │       └── Native/               # P/Invoke Win32 API, DpiScale, OverlayPositionCalculator
 ├── tests/
-│   └── GoalOverlay.Tests/        # Bộ kiểm thử đơn vị tự động (xUnit - 39 tests)
+│   └── GoalOverlay.Tests/        # Bộ kiểm thử tự động xUnit (65 tests PASS 100%)
 │       ├── GoalServiceTests.cs
 │       ├── JsonGoalRepositoryTests.cs
 │       ├── AutostartServiceTests.cs
 │       ├── OverlayPositionCalculatorTests.cs
 │       ├── AutostartAndHotkeyTests.cs
-│       └── Mocks/                # FakeRegistryService, TestClock, TestLogger
+│       ├── ReminderServiceTests.cs
+│       ├── Phase8ModelAndMigrationTests.cs
+│       ├── Phase9UiAndDueStatusTests.cs
+│       ├── Phase10ReminderSchedulerTests.cs
+│       ├── Phase11ReminderSchedulerTests.cs
+│       └── Mocks/                # TestClock, TestLogger, FakeRegistryService
 └── installer/                    # Kịch bản đóng gói cài đặt
-    ├── GoalOverlay.iss           # Script Inno Setup 6 (Non-admin, Clean Uninstall)
-    ├── build_installer.ps1       # Script tự động hóa 1-click Publish & Đóng gói Setup
-    └── output/                   # Chứa file GoalOverlay-Setup.exe thành phẩm
+    ├── GoalOverlay.iss           # Script Inno Setup 6 (Non-admin, Cài đè giữ dữ liệu)
+    ├── build_installer.ps1       # Script tự động hóa 1-click Test, Publish & Đóng gói
+    └── output/                   # File cài đặt và file zip thành phẩm
 ```
-
----
-
-## ⚙️ Quy chuẩn & Tiêu chuẩn Kỹ thuật
-
-- **Kiến trúc**: MVVM thuần (`CommunityToolkit.Mvvm`).
-- **DPI Awareness**: `PerMonitorV2` (tự động điều chỉnh kích thước sắc nét khi kéo thả qua các màn hình có DPI khác nhau: 100%, 125%, 150%, 200%).
-- **Lưu trữ dữ liệu**: `%APPDATA%\GoalOverlay\goals.json` & `settings.json`.
-- **Ghi log lỗi**: `%APPDATA%\GoalOverlay\logs\errors.log` (mọi thao tác I/O, Win32 và Registry đều có try-catch).
-- **Quyền thực thi**: `asInvoker` (chạy an toàn với quyền người dùng thông thường, không yêu cầu UAC Administrator).
-- **Mức tiêu hao tài nguyên**: RAM ổn định ~40MB - 60MB, CPU nhàn rỗi ~0.0%.
-
----
-
-## ⚠️ Known Issues & Các Lỗi Đã Xử Lý
-
-Chi tiết đầy đủ về các lỗi kỹ thuật đã được khắc phục triệt để trong quá trình phát triển:
-1. **Lỗi hàm `WriteAllBytes` trong MSBuild (MSB4185)**: Đã thay thế sang task `Exec` gọi PowerShell giải mã `Assets/app.ico` trước khi biên dịch.
-2. **Lỗi Win32 resource `CS7065` do file icon 0 bytes**: Đã tạo script `EnsureIcon.ps1` dùng GDI+ tạo file icon 32x32 chuẩn Win32.
-3. **Lỗi thuộc tính `LetterSpacing` trong WPF XAML (MC3072)**: Đã chuẩn hóa loại bỏ thuộc tính không hỗ trợ trong WPF TextBlock.
-4. **Lỗi nạp chồng Generic `WeakReferenceMessenger.Register` (CS0305)**: Chuẩn hóa `OverlayWindow` kế thừa `IRecipient<SettingsChangedMessage>`.
-5. **Trùng lặp phím tắt toàn cục (Global Hotkey Conflict)**: Bắt mã lỗi từ `RegisterHotKey`, ghi log cảnh báo và thông báo trạng thái nhẹ trong Cài đặt, không crash.
-6. **Chế độ Game Toàn màn hình Độc quyền (Exclusive Fullscreen)**: Direct3D/Vulkan độc quyền bypass Windows DWM; người dùng chỉ cần chọn chế độ hiển thị *Borderless Windowed* để Overlay hiển thị bình thường.
-7. **Cơ chế tự sửa đường dẫn Autostart (Self-healing)**: Tự động cập nhật Registry Run khi người dùng di chuyển file exe sang thư mục khác.
-8. **Khôi phục dữ liệu an toàn khi file JSON bị lỗi**: Tự đổi tên file hỏng thành `goals.json.corrupt-<timestamp>` và khôi phục về danh sách rỗng.

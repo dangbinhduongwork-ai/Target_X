@@ -66,7 +66,7 @@ Write-Host "-> Da tao thanh cong file thuc thi: $exePath ($exeSizeMB MB)" -Foreg
 if (-not (Test-Path $outputDir)) {
     [System.IO.Directory]::CreateDirectory($outputDir) | Out-Null
 }
-$zipPath = Join-Path $outputDir "GoalOverlay-v1.0.0-win-x64-portable.zip"
+$zipPath = Join-Path $outputDir "GoalOverlay-v1.1.0-win-x64-portable.zip"
 Write-Host "-> Dang dong goi ban Portable ZIP: $zipPath..." -ForegroundColor Gray
 if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 Compress-Archive -Path "$publishDir\*" -DestinationPath $zipPath -Force

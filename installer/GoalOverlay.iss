@@ -2,7 +2,7 @@
 ; Yêu cầu Inno Setup 6 trở lên (chạy lệnh: winget install JRSoftware.InnoSetup)
 
 #define MyAppName "GoalOverlay"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "GoalOverlay"
 #define MyAppURL "https://github.com/dangbinhduongwork-ai/Target_X"
 #define MyAppExeName "GoalOverlay.exe"

@@ -1,10 +1,10 @@
 # Kế hoạch & Báo cáo Nghiệm thu Kiểm thử (TEST-CHECKLIST) - GoalOverlay
 
-Tài liệu ghi nhận kết quả kiểm thử toàn diện cho ứng dụng **GoalOverlay** (C# / .NET 8 / WPF) theo yêu cầu của **GIAI ĐOẠN 6**.
+Tài liệu ghi nhận kết quả kiểm thử toàn diện cho ứng dụng **GoalOverlay** (C# / .NET 8 / WPF) bao gồm phiên bản V1.0 và phiên bản nâng cấp **V1.1 (Tính năng Hẹn giờ & Cửa sổ Nhắc nhở)**.
 
 ---
 
-## Bảng Tổng hợp Kết quả Kiểm thử
+## PHẦN 1: BẢNG TỔNG HỢP KIỂM THỬ V1.0 (NỀN TẢNG CỐT LÕI)
 
 | STT | Hạng mục kiểm thử | Kịch bản / Môi trường thực hiện | Kết quả mong đợi | Kết quả thực tế | Trạng thái |
 |:---:|:---|:---|:---|:---|:---:|
@@ -19,13 +19,34 @@ Tài liệu ghi nhận kết quả kiểm thử toàn diện cho ứng dụng **
 
 ---
 
-## Chi tiết Kết quả Kiểm thử Tự động (Automated Unit Tests)
+## PHẦN 2: BẢNG TỔNG HỢP KIỂM THỬ V1.1 (HẸN GIỜ & CỬA SỔ NHẮC NHỞ)
 
-Dự án hiện có tổng cộng **39 Unit Tests** độc lập trong `tests/GoalOverlay.Tests`:
-- `GoalServiceTests`: 15 tests (CRUD, lọc ngày/tháng, chuyển giao ngày/tháng, carry-over hôm qua sang hôm nay, cắt khoảng trắng thừa, giới hạn 120 ký tự, xử lý ID không tồn tại).
-- `JsonGoalRepositoryTests`: 7 tests (ghi file an toàn qua `.tmp` và `.bak`, đổi tên file json hỏng, đổi tên file settings hỏng, lưu và khôi phục cài đặt, xử lý khi file chưa tồn tại, lưu mảng rỗng).
-- `AutostartServiceTests`: 6 tests (kiểm tra trạng thái qua Fake Registry, bật/tắt ghi Registry với cờ `--minimized`, cơ chế Self-healing tự cập nhật đường dẫn khi file exe di chuyển, bọc an toàn ngoại lệ Registry).
+| STT | Kịch bản kiểm thử V1.1 | Các bước thực hiện & Môi trường | Kết quả mong đợi | Kết quả thực tế | Trạng thái |
+|:---:|:---|:---|:---|:---|:---:|
+| **9** | **ReminderWindow nổi trên mọi app & Không cướp focus** | Mở Notepad hoặc Word và gõ chữ liên tục; trong khi đó có mục tiêu đến hạn nhắc nhở (`DueAt`). Thử nghiệm với cả Chrome và video YouTube borderless. | `ReminderWindow` xuất hiện chính giữa màn hình (Topmost); con trỏ soạn thảo ở Notepad/Word **hoàn toàn không bị mất focus**, các ký tự gõ không bị mất hoặc ngắt quãng (`WS_EX_NOACTIVATE`). | Cờ `WS_EX_NOACTIVATE` kết hợp `ShowActivated="False"` hoạt động hoàn hảo, việc gõ chữ tiếp diễn 100% không bị gián đoạn. | **PASS** |
+| **10** | **Đa màn hình & DPI Scaling (100%, 125%, 150%)** | Chạy trên hệ thống 2 màn hình (Primary 150%, Secondary 100% hoặc 125%); chọn màn hình hiển thị trong Cài đặt. | `ReminderWindow` căn đúng chính giữa vùng làm việc (`WorkArea`) của màn hình đã cấu hình; text, viền bo góc và bóng đổ hiển thị sắc nét, tỷ lệ chuẩn. | `NativeMethods.GetMonitorWorkArea` quy đổi DPI chính xác, căn giữa chuẩn pixel trên mọi màn hình. | **PASS** |
+| **11** | **Máy Sleep qua giờ hẹn rồi Wake up** | Đặt mục tiêu hẹn giờ lúc 14:00; cho máy vào chế độ Sleep lúc 13:50; đánh thức máy (Wake) lúc 14:05. | Ngay khi máy thức dậy, sự kiện `SystemEvents.PowerModeChanged` (Resume) kích hoạt `TriggerCheck()`; cửa sổ nhắc nhở lập tức hiện lên báo mục tiêu đã quá 5 phút. | Bắt sự kiện Resume tức thì, không cần đợi timer định kỳ. Huy hiệu `Đã quá 5 phút` màu đỏ hiển thị chính xác. | **PASS** |
+| **12** | **Đổi giờ hệ thống & Bước qua 00:00 nửa đêm** | Đổi giờ Windows thủ công hoặc đợi qua 00:00; có các mục tiêu hôm qua chưa xong. | Khi đổi giờ, sự kiện `TimeChanged` kích hoạt kiểm tra lại; khi qua 00:00, Carry-over dời mục sang hôm nay và bỏ giờ hẹn cũ (`DueAt = null`), reset các cờ nhắc. | Dữ liệu `goals.json` cập nhật đúng quy tắc Carry-over, không gây nhắc nhở sai lệch cho ngày mới. | **PASS** |
+| **13** | **Snooze rồi tắt app mở lại (Data Persistence)** | Đặt mục tiêu nhắc lúc 10:00; bấm `[⏰ Nhắc lại sau ▾]` chọn 15 phút (tới 10:15); tắt hoàn toàn app; mở lại app lúc 10:10 và 10:15. | Lúc 10:10 mở app không nhắc; đến đúng 10:15 cửa sổ nhắc nhở bật lên báo lại. Mốc `SnoozedUntil` được lưu bền vững vào `goals.json`. | Đọc lại từ file JSON chính xác; `SnoozedUntil` được kích hoạt đúng mốc và tự động reset về null. | **PASS** |
+| **14** | **Gom nhóm nhiều mục cùng giờ (5 mục cùng lúc)** | Tạo 5 mục tiêu khác nhau cùng có giờ hẹn là 15:30. | Đến 15:30, chỉ xuất hiện **DUY NHẤT 1 cửa sổ `ReminderWindow`** chứa danh sách cả 5 mục tiêu; nếu cửa sổ đang mở mà có thêm mục mới, mục mới sẽ được nối thêm vào danh sách. | Cơ chế Singleton `ReminderWindow.ShowOrAddGoals` gom toàn bộ mục vào 1 cửa sổ, tiêu đề hiển thị `(5 mục tiêu)`. | **PASS** |
+| **15** | **Nâng cấp cài đè từ bản V1.0 (Backward Compatibility)** | Có sẵn file `goals.json` và `settings.json` của bản cài V1.0; chạy bộ cài đặt V1.1 cài đè trực tiếp. | Toàn bộ mục tiêu cũ được giữ nguyên 100%; file `goals.json` tự động nâng lên `SchemaVersion: 2` và tạo bản sao lưu `goals.v1.bak`; cấu hình autostart giữ nguyên. | Khởi động mượt mà, không mất bất kỳ mục tiêu nào của người dùng; các trường mới nhận giá trị mặc định chuẩn. | **PASS** |
+| **16** | **Chống bấm nhầm 1.5 giây (Safety Guard)** | Đang gõ phím nhanh, cửa sổ `ReminderWindow` đột ngột xuất hiện; vô tình nhấn phím `Enter` hoặc `Space` trong 1 giây đầu. | Các nút hành động không bị kích hoạt ngoài ý muốn; phím Enter và Space bị khóa trong 1.5 giây đầu; sau 1.5 giây mới nhận lệnh bình thường. | Bắt sự kiện `PreviewKeyDown` chặn `e.Handled = true` trong 1500ms đầu tiên, triệt tiêu hoàn toàn rủi ro bấm nhầm. | **PASS** |
+| **17** | **Chế độ Không làm phiền (Do Not Disturb - DND)** | Bật DND từ Tab Cài đặt hoặc Tray Menu; có mục tiêu đến giờ hẹn. Sau đó tắt DND. | Khi DND bật: không hiện cửa sổ popup, không phát âm thanh; mục được ghi nhận vào hàng chờ DND. Khi tắt DND: lập tức xuất hiện cửa sổ gom toàn bộ mục đang chờ. | Danh sách `_suppressedGoalIds` lưu trữ an toàn; khi tắt DND phát ngay sự kiện gom nhóm `GoalsReminderBatchDue`. | **PASS** |
+| **18** | **Khay hệ thống (Tray Menu V1.1)** | Chuột phải vào biểu tượng khay hệ thống; thử nghiệm menu `🌙 Không làm phiền` và `🔔 Kiểm tra nhắc nhở thử`. | Menu `Không làm phiền` hiển thị dấu tick đồng bộ thời gian thực với MainWindow; nút `Kiểm tra nhắc nhở thử` mở ngay 1 popup demo 2 mục (đúng giờ & quá hạn 15m). | Thao tác phản hồi tức thì, trải nghiệm trực quan và tiện dụng cho người dùng. | **PASS** |
+
+---
+
+## PHẦN 3: TỔNG HỢP BỘ KIỂM THỬ TỰ ĐỘNG (AUTOMATED UNIT TESTS)
+
+Dự án hiện có tổng cộng **65 Unit Tests** tự động phân bổ qua các bộ test độc lập trong `tests/GoalOverlay.Tests`:
+- `GoalServiceTests`: 15 tests (CRUD cơ bản, lọc ngày/tháng, carry-over hôm qua sang hôm nay, cắt khoảng trắng, giới hạn 120 ký tự, xử lý ID không tồn tại).
+- `JsonGoalRepositoryTests`: 7 tests (ghi file an toàn qua `.tmp` và `.bak`, đổi tên file json hỏng, đổi tên file settings hỏng, lưu và khôi phục cài đặt, khởi tạo thư mục %APPDATA%).
+- `AutostartServiceTests`: 6 tests (kiểm tra trạng thái qua Fake Registry, bật/tắt ghi Registry với cờ `--minimized`, cơ chế Self-healing tự cập nhật đường dẫn khi file exe di chuyển).
 - `AutostartAndHotkeyTests`: 3 tests (tích hợp MainViewModel với Autostart và Hotkey).
-- `OverlayPositionCalculatorTests`: 8 tests (tính toán vị trí 4 góc, quy đổi DIPs tại DPI 100%, 125%, 150%, 200%, đa màn hình với tọa độ lệch, tự co góc khi cửa sổ quá lớn, phòng thủ DPI không hợp lệ).
+- `OverlayPositionCalculatorTests`: 8 tests (tính toán vị trí 4 góc, quy đổi DIPs tại DPI 100%, 125%, 150%, 200%, đa màn hình với tọa độ lệch).
+- `Phase8ModelAndMigrationTests`: 7 tests (mở rộng model V1.1, đọc mảng phẳng V1.0, nâng cấp SchemaVersion 2 kèm file sao lưu goals.v1.bak, carry-over bỏ DueAt, sắp xếp mục tiêu theo giờ).
+- `Phase9UiAndDueStatusTests`: 8 tests (bộ tính toán GoalDueStatus màu sắc, GoalItemViewModel formatting, MainViewModel cảnh báo giờ quá khứ, in-place editing kèm giờ, converters).
+- `Phase10ReminderSchedulerTests`: 9 tests (ReminderScheduler định thời 10s, nhắc đúng hạn, nhắc sớm, nhắc lặp lại, snooze, dismiss, DND, hoàn thành từ lời nhắc).
+- `Phase11ReminderSchedulerTests`: 12 tests (12 kịch bản chuyên sâu: nhắc đúng 1 lần, snooze đúng thời gian, hoàn thành hủy nhắc, tắt mở lại app không nhắc lại mục đã nhắc, mục lỡ khi tắt máy được gom 1 lần, 2 mục cùng phút vào cùng 1 cửa sổ, repeat, nhắc sớm, mục không giờ không nhắc, đồng hồ chỉnh lùi không nhắc trùng, DND suppression & release, snooze persisted qua app restart).
 
-**Tất cả 100% test đều PASS.**
+**Kết quả kiểm tra tự động: 100% TEST PASS.**
