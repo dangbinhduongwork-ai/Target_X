@@ -71,6 +71,41 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Mở giao diện quản lý và focus vào ô nhập mục tiêu hôm nay
+    /// </summary>
+    public void OpenAndFocusDailyGoalInput()
+    {
+        ShowAndActivate();
+        MainTabs.SelectedIndex = 0;
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, new Action(() =>
+        {
+            TxtDailyInput?.Focus();
+        }));
+    }
+
+    /// <summary>
+    /// Mở giao diện quản lý và focus vào ô nhập mục tiêu tháng này
+    /// </summary>
+    public void OpenAndFocusMonthlyGoalInput()
+    {
+        ShowAndActivate();
+        MainTabs.SelectedIndex = 1;
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, new Action(() =>
+        {
+            TxtMonthlyInput?.Focus();
+        }));
+    }
+
+    /// <summary>
+    /// Mở giao diện quản lý và chuyển sang tab Cài đặt
+    /// </summary>
+    public void OpenSettingsTab()
+    {
+        ShowAndActivate();
+        SelectSettingsTab();
+    }
+
+    /// <summary>
     /// Cho phép đóng hoàn toàn cửa sổ khi người dùng bấm Thoát từ Tray Icon
     /// </summary>
     public void CloseExplicitly()

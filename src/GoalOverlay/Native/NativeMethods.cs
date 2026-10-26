@@ -35,9 +35,11 @@ public static class NativeMethods
     public const uint MOD_ALT = 0x0001;
     public const uint MOD_CONTROL = 0x0002;
     public const uint MOD_NOREPEAT = 0x4000;
-    public const uint VK_G = 0x47;
+    public const uint VK_G = 0x47; // Phím G: Ẩn/Hiện Overlay
+    public const uint VK_M = 0x4D; // Phím M: Mở cửa sổ Quản lý mục tiêu
     public const int WM_HOTKEY = 0x0312;
     public const int OVERLAY_HOTKEY_ID = 9001;
+    public const int MANAGEMENT_HOTKEY_ID = 9002;
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

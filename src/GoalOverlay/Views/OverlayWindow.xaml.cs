@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.Messaging;
@@ -73,14 +74,69 @@ public partial class OverlayWindow : Window, IRecipient<SettingsChangedMessage>
             var source = HwndSource.FromHwnd(_hWnd);
             source?.AddHook(WndProc);
 
-            // 5. Đăng ký phím tắt toàn cục Ctrl + Alt + G để bật/tắt hiển thị Overlay
-            App.HotkeyService.Register(_hWnd, ToggleVisibility);
+            // 5. Đăng ký 2 phím tắt toàn cục:
+            // - Ctrl + Alt + G: Ẩn/Hiện Overlay HUD
+            // - Ctrl + Alt + M: Mở ngay cửa sổ Quản lý mục tiêu
+            App.HotkeyService.Register(_hWnd, ToggleVisibility, () => App.MainWindowInstance?.ShowAndActivate());
         }
         catch (Exception ex)
         {
             App.Logger.Error("Lỗi khi cấu hình cờ Win32 cho OverlayWindow", ex);
         }
     }
+
+    #region Các Tương Tác Trực Tiếp Trên HUD (Mở Quản Lý, Thêm Mục Tiêu, Cài Đặt)
+
+    private void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount == 2)
+        {
+            App.MainWindowInstance?.ShowAndActivate();
+        }
+    }
+
+    private void HeaderTitle_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount == 2)
+        {
+            App.MainWindowInstance?.ShowAndActivate();
+        }
+    }
+
+    private void OpenManagement_Click(object sender, RoutedEventArgs e)
+    {
+        App.MainWindowInstance?.ShowAndActivate();
+    }
+
+    private void AddDailyGoal_Click(object sender, RoutedEventArgs e)
+    {
+        App.MainWindowInstance?.OpenAndFocusDailyGoalInput();
+    }
+
+    private void AddMonthlyGoal_Click(object sender, RoutedEventArgs e)
+    {
+        App.MainWindowInstance?.OpenAndFocusMonthlyGoalInput();
+    }
+
+    private void OpenSettings_Click(object sender, RoutedEventArgs e)
+    {
+        App.MainWindowInstance?.OpenSettingsTab();
+    }
+
+    private void ToggleOverlay_Click(object sender, RoutedEventArgs e)
+    {
+        ToggleVisibility();
+    }
+
+    private void ExitApp_Click(object sender, RoutedEventArgs e)
+    {
+        if (Application.Current is App app)
+        {
+            app.ShutdownApp();
+        }
+    }
+
+    #endregion
 
     /// <summary>
     /// Xử lý thông điệp broadcast từ SingleInstanceGuard khi người dùng mở ứng dụng lần thứ hai

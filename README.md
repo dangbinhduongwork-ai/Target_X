@@ -50,17 +50,20 @@
 - **Kéo thả sắp xếp thứ tự**: Nhấn giữ chuột vào biểu tượng tay cầm `⠿` ở đầu mỗi dòng và kéo đến vị trí mong muốn.
 - **Xóa mục tiêu**: Bấm nút `✕` màu đỏ ở bên phải mỗi dòng.
 
-### 2. Phím tắt toàn cục (Global Hotkey)
-- **`Ctrl + Alt + G`**: Ẩn hoặc hiện nhanh cửa sổ HUD Overlay từ bất kỳ ứng dụng nào.
-
-### 3. Khay hệ thống (System Tray Icon)
-- **Nhấp đúp hoặc nhấp chuột trái**: Mở cửa sổ Quản lý mục tiêu.
-- **Nhấp chuột phải** mở Menu điều hướng:
-  - `🎯 Mở quản lý`: Kích hoạt cửa sổ chính.
-  - `👁️ Ẩn/Hiện overlay (Ctrl+Alt+G)`: Bật/tắt Overlay HUD.
-  - `⚙️ Cài đặt`: Mở cửa sổ chính và chuyển thẳng đến tab Cài đặt.
-  - `❌ Thoát`: Tắt hoàn toàn ứng dụng và dọn dẹp tài nguyên.
-- **Đóng cửa sổ**: Nhấn nút `[X]` đỏ trên cửa sổ quản lý chỉ thu nhỏ cửa sổ xuống khay hệ thống.
+### 2. Các cách mở giao diện Quản lý khi phần mềm đang chạy
+1. **Trực tiếp trên Overlay HUD**:
+   - Bấm nút **`➕ Thêm`** ở góc trên bên phải HUD: Mở ngay cửa sổ và focus sẵn vào ô nhập mục tiêu.
+   - Bấm nút **`⚙️`**: Mở cửa sổ quản lý và chuyển thẳng đến tab Cài đặt.
+   - **Nhấp đúp chuột (Double-click)** vào bất kỳ vị trí nào trên thẻ HUD: Mở ngay cửa sổ quản lý.
+   - **Chuột phải (Right-click)** vào HUD: Mở menu ngữ cảnh nhanh để thêm mục tiêu hôm nay, mục tiêu tháng này, hoặc cài đặt.
+2. **Phím tắt toàn cục (Global Hotkey)**:
+   - **`Ctrl + Alt + M`**: Mở ngay cửa sổ Quản lý mục tiêu từ bất kỳ ứng dụng nào trên Windows.
+   - **`Ctrl + Alt + G`**: Ẩn hoặc hiện nhanh cửa sổ HUD Overlay.
+3. **Mở từ Desktop / Start Menu**:
+   - Khi ứng dụng đang chạy ngầm, bạn chỉ cần nhấp đúp vào icon **GoalOverlay** trên Desktop hoặc Start Menu, cửa sổ quản lý sẽ tự động được đưa lên trên cùng (Single Instance Guard).
+4. **Từ Khay hệ thống (System Tray Icon)**:
+   - **Nhấp đúp hoặc nhấp chuột trái** vào biểu tượng GoalOverlay ở góc đồng hồ taskbar.
+   - **Nhấp chuột phải** chọn **`🎯 Mở quản lý`**.
 
 ---
 

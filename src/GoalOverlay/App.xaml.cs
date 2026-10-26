@@ -24,8 +24,11 @@ public partial class App : Application
 {
     private const string MutexName = "GoalOverlay_App_Mutex_8F7E4D1B";
     private const string ActivateMessageName = "GoalOverlay_ActivateRunningInstance";
+    private const string EventWaitHandleName = "GoalOverlay_ShowManager_Event_8F7E4D1B";
 
     private static Mutex? _mutex;
+    private static EventWaitHandle? _eventWaitHandle;
+    private static RegisteredWaitHandle? _registeredWait;
     private H.NotifyIcon.TaskbarIcon? _trayIcon;
 
     public static uint ActivateMessageId { get; private set; }
@@ -63,8 +66,23 @@ public partial class App : Application
         _mutex = new Mutex(true, MutexName, out bool createdNew);
         if (!createdNew)
         {
-            // Đã có instance đang chạy. Bắn message broadcast để instance đang chạy kích hoạt MainWindow lên
             Logger.Info("Phát hiện instance khác của GoalOverlay đang chạy. Đưa cửa sổ hiện tại lên và thoát instance mới.");
+
+            // Kích hoạt qua EventWaitHandle (IPC độ trễ cực thấp, không bị chặn bởi UIPI Windows)
+            try
+            {
+                if (EventWaitHandle.TryOpenExisting(EventWaitHandleName, out var existingEvent))
+                {
+                    existingEvent.Set();
+                    existingEvent.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Không thể kích hoạt EventWaitHandle: {ex.Message}");
+            }
+
+            // Dự phòng thêm qua Windows Message broadcast
             uint msg = NativeMethods.RegisterWindowMessage(ActivateMessageName);
             if (msg != 0)
             {
@@ -78,6 +96,23 @@ public partial class App : Application
         }
 
         ActivateMessageId = NativeMethods.RegisterWindowMessage(ActivateMessageName);
+
+        // Đăng ký EventWaitHandle để lắng nghe yêu cầu kích hoạt cửa sổ quản lý từ instance thứ 2
+        try
+        {
+            _eventWaitHandle = new EventWaitHandle(false, EventResetMode.AutoReset, EventWaitHandleName);
+            _registeredWait = ThreadPool.RegisterWaitForSingleObject(_eventWaitHandle, (state, timedOut) =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    MainWindowInstance?.ShowAndActivate();
+                });
+            }, null, -1, false);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"Không thể tạo EventWaitHandle: {ex.Message}");
+        }
 
         Logger.Info("=== Ứng dụng GoalOverlay khởi động (Giai đoạn 5: Chạy nền & Tự khởi động) ===");
 
@@ -203,6 +238,11 @@ public partial class App : Application
             _trayIcon?.Dispose();
             _trayIcon = null;
 
+            _registeredWait?.Unregister(null);
+            _registeredWait = null;
+            _eventWaitHandle?.Dispose();
+            _eventWaitHandle = null;
+
             MainWindowInstance?.CloseExplicitly();
             OverlayWindow?.Close();
 
@@ -229,6 +269,11 @@ public partial class App : Application
         {
             _trayIcon?.Dispose();
             _trayIcon = null;
+
+            _registeredWait?.Unregister(null);
+            _registeredWait = null;
+            _eventWaitHandle?.Dispose();
+            _eventWaitHandle = null;
 
             if (_mutex != null)
             {

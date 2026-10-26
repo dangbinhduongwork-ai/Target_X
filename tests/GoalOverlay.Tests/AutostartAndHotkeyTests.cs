@@ -24,6 +24,7 @@ public class MockHotkeyService : IHotkeyService
     public bool IsRegistered { get; set; } = true;
     public string StatusMessage { get; set; } = "Đang kích hoạt: Ctrl + Alt + G";
     public bool Register(IntPtr hWnd, Action callback) => true;
+    public bool Register(IntPtr hWnd, Action toggleOverlayCallback, Action? openManagementCallback) => true;
     public void Unregister(IntPtr hWnd) { IsRegistered = false; }
 }
 
@@ -100,6 +101,17 @@ public class AutostartAndHotkeyTests : IDisposable
     {
         var hotkeyService = new HotkeyService(_logger);
         bool result = hotkeyService.Register(IntPtr.Zero, () => { });
+
+        Assert.False(result);
+        Assert.False(hotkeyService.IsRegistered);
+        Assert.Contains("không hợp lệ", hotkeyService.StatusMessage);
+    }
+
+    [Fact]
+    public void HotkeyService_Dual_Register_Invalid_Hwnd_Returns_False()
+    {
+        var hotkeyService = new HotkeyService(_logger);
+        bool result = hotkeyService.Register(IntPtr.Zero, () => { }, () => { });
 
         Assert.False(result);
         Assert.False(hotkeyService.IsRegistered);
