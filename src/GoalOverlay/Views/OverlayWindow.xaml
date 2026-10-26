@@ -6,86 +6,44 @@
         xmlns:models="clr-namespace:GoalOverlay.Models"
         mc:Ignorable="d"
         Title="GoalOverlay HUD"
-        Width="320"
-        SizeToContent="Height"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
         Topmost="True"
         ShowInTaskbar="False"
-        ResizeMode="NoResize">
+        ShowActivated="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight">
 
     <Window.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-        <DropShadowEffect x:Key="HudShadow" BlurRadius="18" ShadowDepth="4" Direction="270" Color="#000000" Opacity="0.6"/>
+        <!-- Hiệu ứng bóng đổ nền HUD tổng thể -->
+        <DropShadowEffect x:Key="CardDropShadow" BlurRadius="20" ShadowDepth="4" Direction="270" Color="#000000" Opacity="0.6"/>
 
-        <Style x:Key="IconButton" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#94A3B8"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="4"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Foreground" Value="#F8FAFC"/>
-                    <Setter Property="Background" Value="#334155"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
+        <!-- Hiệu ứng bóng đổ nhẹ cho chữ để đọc rõ trên mọi nền sáng hoặc tối -->
+        <DropShadowEffect x:Key="TextDropShadow" BlurRadius="3" ShadowDepth="1.2" Direction="315" Color="#000000" Opacity="0.95"/>
 
-        <Style x:Key="QuickIncrementButton" TargetType="Button">
-            <Setter Property="Background" Value="#1E293B"/>
-            <Setter Property="Foreground" Value="#38BDF8"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Width" Value="24"/>
-            <Setter Property="Height" Value="24"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="12">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#38BDF8"/>
-                    <Setter Property="Foreground" Value="#0F172A"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="GoalCheckButton" TargetType="Button">
+        <!-- Nút tick chọn tròn tinh tế -->
+        <Style x:Key="GoalToggleCheckButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Circle" Width="18" Height="18" CornerRadius="9" BorderThickness="1.8" BorderBrush="#64748B" Background="Transparent">
-                            <Path x:Name="CheckMark" Data="M3,9 L7,13 L15,4" Stroke="White" StrokeThickness="2" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/>
+                        <Border x:Name="CircleBorder" Width="16" Height="16" CornerRadius="8"
+                                BorderBrush="#64748B" BorderThickness="1.6" Background="Transparent" Margin="0,1,8,0">
+                            <Path x:Name="CheckSign" Data="M3,8 L6,11 L13,4" Stroke="White" StrokeThickness="1.8"
+                                  Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <DataTrigger Binding="{Binding IsCompleted}" Value="True">
-                                <Setter TargetName="Circle" Property="Background" Value="#10B981"/>
-                                <Setter TargetName="Circle" Property="BorderBrush" Value="#10B981"/>
-                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                            <DataTrigger Binding="{Binding IsDone}" Value="True">
+                                <Setter TargetName="CircleBorder" Property="Background" Value="#10B981"/>
+                                <Setter TargetName="CircleBorder" Property="BorderBrush" Value="#10B981"/>
+                                <Setter TargetName="CheckSign" Property="Visibility" Value="Visible"/>
                             </DataTrigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Circle" Property="BorderBrush" Value="#38BDF8"/>
+                                <Setter TargetName="CircleBorder" Property="BorderBrush" Value="#38BDF8"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -94,215 +52,130 @@
         </Style>
     </Window.Resources>
 
-    <Border Margin="10"
-            Background="#141923"
+    <!-- Khung Card HUD bo góc bán trong suốt -->
+    <Border Margin="12"
+            MinWidth="260"
+            MaxWidth="380"
+            Background="#D90F172A"
             Opacity="{Binding Opacity}"
             CornerRadius="14"
-            BorderBrush="#2A3447"
+            BorderBrush="#334155"
             BorderThickness="1.2"
-            Effect="{StaticResource HudShadow}">
-        <Grid Margin="14">
+            Effect="{StaticResource CardDropShadow}">
+        <Grid Margin="14,12,14,14">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <Grid Grid.Row="0" Margin="0,0,0,10" MouseLeftButtonDown="Header_MouseLeftButtonDown" Background="Transparent" Cursor="SizeAll">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
+            <!-- Tiêu đề HUD -->
+            <Grid Grid.Row="0" Margin="0,0,0,10">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="🎯" FontSize="15" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="MỤC TIÊU" FontWeight="Bold" FontSize="13" Foreground="#E2E8F0" LetterSpacing="1" VerticalAlignment="Center"/>
-                </StackPanel>
-
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Cursor="Arrow">
-                    <Button Style="{StaticResource IconButton}" Command="{Binding ToggleLockCommand}" ToolTip="Khóa / Mở khóa vị trí">
-                        <TextBlock Text="{Binding IsLocked, Converter={x:Null}}" FontWeight="SemiBold" FontSize="11">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Text" Value="🔓"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsLocked}" Value="True">
-                                            <Setter Property="Text" Value="🔒"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </Button>
-
-                    <Button Style="{StaticResource IconButton}" Command="{Binding ToggleCollapseCommand}" ToolTip="Thu gọn / Mở rộng" Margin="4,0,0,0">
-                        <TextBlock FontSize="10">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Text" Value="▲"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsCollapsed}" Value="True">
-                                            <Setter Property="Text" Value="▼"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </Button>
-
-                    <Button Style="{StaticResource IconButton}" Click="BtnOpenManager_Click" ToolTip="Mở quản lý mục tiêu" Margin="4,0,0,0">
-                        <TextBlock Text="⚙️" FontSize="11"/>
-                    </Button>
+                    <TextBlock Text="🎯" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="MỤC TIÊU" FontWeight="Bold" FontSize="12.5" Foreground="#60A5FA" LetterSpacing="1"
+                               Effect="{StaticResource TextDropShadow}" VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
 
-            <StackPanel Grid.Row="1">
-                <StackPanel.Style>
-                    <Style TargetType="StackPanel">
-                        <Setter Property="Visibility" Value="Visible"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsCollapsed}" Value="True">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </StackPanel.Style>
+            <!-- 1. KHỐI HÔM NAY (kèm tiến độ x/y xong) -->
+            <StackPanel Grid.Row="1" Margin="0,0,0,8">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <TextBlock Text="HÔM NAY" FontSize="11" FontWeight="Bold" Foreground="#94A3B8" LetterSpacing="0.8"
+                               Effect="{StaticResource TextDropShadow}"/>
+                    <TextBlock Text="{Binding TodayProgressText}" FontSize="10.5" Foreground="#64748B" Margin="6,0,0,0"
+                               VerticalAlignment="Center" Effect="{StaticResource TextDropShadow}"/>
+                </StackPanel>
 
-                <TextBlock Text="HÀNG NGÀY" FontSize="10.5" FontWeight="SemiBold" Foreground="#64748B" LetterSpacing="0.8" Margin="0,4,0,6"/>
-                <ItemsControl ItemsSource="{Binding DailyGoals}">
+                <ItemsControl ItemsSource="{Binding TodayGoals}">
                     <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type models:GoalItem}">
-                            <Grid Margin="0,3,0,5">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
+                        <DataTemplate DataType="{x:Type models:Goal}">
+                            <Grid Margin="0,3,0,4">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
-                                <Button Grid.Row="0" Grid.Column="0"
-                                        Style="{StaticResource GoalCheckButton}"
-                                        Command="{Binding DataContext.ToggleCompletedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                <!-- Nút toggle hoàn thành -->
+                                <Button Grid.Column="0"
+                                        Style="{StaticResource GoalToggleCheckButton}"
+                                        Command="{Binding DataContext.ToggleGoalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding}"
-                                        Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        VerticalAlignment="Center"/>
 
-                                <TextBlock Grid.Row="0" Grid.Column="1"
-                                           Text="{Binding Title}"
-                                           FontSize="12"
-                                           Foreground="#F1F5F9"
+                                <!-- Text mục tiêu: gạch ngang và mờ hơn khi đã xong -->
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Text}"
+                                           FontSize="{Binding DataContext.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Foreground="#F8FAFC"
+                                           TextWrapping="Wrap"
                                            VerticalAlignment="Center"
-                                           TextTrimming="CharacterEllipsis">
+                                           Effect="{StaticResource TextDropShadow}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                                                <DataTrigger Binding="{Binding IsDone}" Value="True">
                                                     <Setter Property="TextDecorations" Value="Strikethrough"/>
-                                                    <Setter Property="Foreground" Value="#64748B"/>
+                                                    <Setter Property="Opacity" Value="0.55"/>
+                                                    <Setter Property="Foreground" Value="#94A3B8"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
-
-                                <TextBlock Grid.Row="0" Grid.Column="2"
-                                           Text="{Binding CurrentCount, StringFormat='{}{0}'}"
-                                           FontSize="11" Foreground="#94A3B8"
-                                           Margin="4,0,0,0" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Row="0" Grid.Column="2"
-                                           Text="{Binding TargetCount, StringFormat='/\{0\}'}"
-                                           FontSize="11" Foreground="#64748B"
-                                           Margin="14,0,6,0" VerticalAlignment="Center"/>
-
-                                <Button Grid.Row="0" Grid.Column="3"
-                                        Content="+"
-                                        Style="{StaticResource QuickIncrementButton}"
-                                        Command="{Binding DataContext.IncrementProgressCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding}"
-                                        ToolTip="Tăng 1 đơn vị"/>
-
-                                <ProgressBar Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
-                                             Height="4"
-                                             Margin="0,4,0,0"
-                                             Minimum="0" Maximum="1"
-                                             Value="{Binding ProgressRatio, Mode=OneWay}"
-                                             BorderThickness="0"
-                                             Background="#1E293B"
-                                             Foreground="#38BDF8"/>
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+            </StackPanel>
 
-                <Separator Background="#242C3D" Margin="0,8,0,8"/>
+            <!-- Đường phân cách nhẹ giữa 2 khối -->
+            <Separator Grid.Row="2" Background="#1E293B" Margin="0,4,0,8"/>
 
-                <TextBlock Text="HÀNG THÁNG" FontSize="10.5" FontWeight="SemiBold" Foreground="#64748B" LetterSpacing="0.8" Margin="0,0,0,6"/>
-                <ItemsControl ItemsSource="{Binding MonthlyGoals}">
+            <!-- 2. KHỐI THÁNG NÀY (kèm tiến độ x/y xong) -->
+            <StackPanel Grid.Row="3">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <TextBlock Text="THÁNG NÀY" FontSize="11" FontWeight="Bold" Foreground="#94A3B8" LetterSpacing="0.8"
+                               Effect="{StaticResource TextDropShadow}"/>
+                    <TextBlock Text="{Binding MonthProgressText}" FontSize="10.5" Foreground="#64748B" Margin="6,0,0,0"
+                               VerticalAlignment="Center" Effect="{StaticResource TextDropShadow}"/>
+                </StackPanel>
+
+                <ItemsControl ItemsSource="{Binding MonthGoals}">
                     <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type models:GoalItem}">
-                            <Grid Margin="0,3,0,5">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
+                        <DataTemplate DataType="{x:Type models:Goal}">
+                            <Grid Margin="0,3,0,4">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
-                                <Button Grid.Row="0" Grid.Column="0"
-                                        Style="{StaticResource GoalCheckButton}"
-                                        Command="{Binding DataContext.ToggleCompletedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                <Button Grid.Column="0"
+                                        Style="{StaticResource GoalToggleCheckButton}"
+                                        Command="{Binding DataContext.ToggleGoalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding}"
-                                        Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        VerticalAlignment="Center"/>
 
-                                <TextBlock Grid.Row="0" Grid.Column="1"
-                                           Text="{Binding Title}"
-                                           FontSize="12"
-                                           Foreground="#F1F5F9"
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Text}"
+                                           FontSize="{Binding DataContext.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Foreground="#F8FAFC"
+                                           TextWrapping="Wrap"
                                            VerticalAlignment="Center"
-                                           TextTrimming="CharacterEllipsis">
+                                           Effect="{StaticResource TextDropShadow}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                                                <DataTrigger Binding="{Binding IsDone}" Value="True">
                                                     <Setter Property="TextDecorations" Value="Strikethrough"/>
-                                                    <Setter Property="Foreground" Value="#64748B"/>
+                                                    <Setter Property="Opacity" Value="0.55"/>
+                                                    <Setter Property="Foreground" Value="#94A3B8"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
-
-                                <TextBlock Grid.Row="0" Grid.Column="2"
-                                           Text="{Binding CurrentCount, StringFormat='{}{0}'}"
-                                           FontSize="11" Foreground="#94A3B8"
-                                           Margin="4,0,0,0" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Row="0" Grid.Column="2"
-                                           Text="{Binding TargetCount, StringFormat='/\{0\}'}"
-                                           FontSize="11" Foreground="#64748B"
-                                           Margin="14,0,6,0" VerticalAlignment="Center"/>
-
-                                <Button Grid.Row="0" Grid.Column="3"
-                                        Content="+"
-                                        Style="{StaticResource QuickIncrementButton}"
-                                        Command="{Binding DataContext.IncrementProgressCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding}"
-                                        ToolTip="Tăng 1 đơn vị"/>
-
-                                <ProgressBar Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
-                                             Height="4"
-                                             Margin="0,4,0,0"
-                                             Minimum="0" Maximum="1"
-                                             Value="{Binding ProgressRatio, Mode=OneWay}"
-                                             BorderThickness="0"
-                                             Background="#1E293B"
-                                             Foreground="#818CF8"/>
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
