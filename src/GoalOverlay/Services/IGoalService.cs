@@ -1,0 +1,27 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using GoalOverlay.Models;
+
+namespace GoalOverlay.Services;
+
+/// <summary>
+/// Giao diện dịch vụ nghiệp vụ quản lý mục tiêu và thiết lập
+/// </summary>
+public interface IGoalService
+{
+    Task<IReadOnlyList<Goal>> GetTodayGoalsAsync();
+    Task<IReadOnlyList<Goal>> GetCurrentMonthGoalsAsync();
+
+    Task<Goal> AddDailyGoalAsync(string text, DateOnly? date = null);
+    Task<Goal> AddMonthlyGoalAsync(string text, string? month = null);
+
+    Task<bool> UpdateGoalTextAsync(Guid id, string newText);
+    Task<bool> ToggleGoalAsync(Guid id);
+    Task<bool> DeleteGoalAsync(Guid id);
+
+    Task<int> CarryOverUnfinishedGoalsAsync();
+
+    Task<AppSettings> GetSettingsAsync();
+    Task SaveSettingsAsync(AppSettings settings);
+}

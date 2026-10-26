@@ -6,11 +6,32 @@ namespace GoalOverlay.Models;
 /// </summary>
 public class AppSettings
 {
-    public bool AutoStartWithWindows { get; set; } = false;
-    public double OverlayOpacity { get; set; } = 0.95;
-    public bool AlwaysOnTop { get; set; } = true;
+    public double Opacity { get; set; } = 0.95;
+
+    public double FontSize { get; set; } = 13.0;
+
+    public string TextColor { get; set; } = "#F8FAFC";
+
+    public ScreenCorner Corner { get; set; } = ScreenCorner.TopRight;
+
+    public int MonitorIndex { get; set; } = 0;
+
+    public bool ClickThrough { get; set; } = false;
+
+    public bool HotkeyEnabled { get; set; } = true;
+
+    public bool AutostartEnabled { get; set; } = false;
+
+    public bool CarryOverUnfinished { get; set; } = true;
+
+    // Các thuộc tính phụ trợ lưu vị trí tọa độ khi kéo thả overlay
     public double WindowTop { get; set; } = 40.0;
-    public double WindowLeft { get; set; } = -1.0; // -1 biểu thị vị trí mặc định (bám sát mép phải màn hình)
+    public double WindowLeft { get; set; } = -1.0;
     public bool IsPositionLocked { get; set; } = true;
-    public bool IsOverlayVisible { get; set; } = true;
+
+    public double OverlayOpacity
+    {
+        get => Opacity;
+        set => Opacity = value;
+    }
 }
