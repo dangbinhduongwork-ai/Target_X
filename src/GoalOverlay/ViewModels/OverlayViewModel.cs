@@ -11,14 +11,10 @@ using GoalOverlay.Services;
 namespace GoalOverlay.ViewModels;
 
 /// <summary>
-/// Thông điệp gửi qua WeakReferenceMessenger khi danh sách mục tiêu có sự thay đổi
-/// </summary>
-public record GoalsChangedMessage();
-
-/// <summary>
 /// ViewModel quản lý dữ liệu hiển thị trên Overlay HUD
+/// Lắng nghe đồng bộ realtime dữ liệu mục tiêu và Live Preview cài đặt
 /// </summary>
-public partial class OverlayViewModel : ObservableObject, IRecipient<GoalsChangedMessage>
+public partial class OverlayViewModel : ObservableObject, IRecipient<GoalsChangedMessage>, IRecipient<SettingsChangedMessage>
 {
     private readonly IGoalService _goalService;
     private readonly IClock _clock;
@@ -52,11 +48,21 @@ public partial class OverlayViewModel : ObservableObject, IRecipient<GoalsChange
         _logger = logger;
 
         WeakReferenceMessenger.Default.Register<GoalsChangedMessage>(this);
+        WeakReferenceMessenger.Default.Register<SettingsChangedMessage>(this);
     }
 
     public async void Receive(GoalsChangedMessage message)
     {
         await LoadGoalsAsync();
+    }
+
+    public void Receive(SettingsChangedMessage message)
+    {
+        // Áp dụng Live Preview tức thì
+        Opacity = message.Settings.Opacity;
+        FontSize = message.Settings.FontSize;
+        TextColor = message.Settings.TextColor;
+        ClickThrough = message.Settings.ClickThrough;
     }
 
     /// <summary>
@@ -151,14 +157,12 @@ public partial class OverlayViewModel : ObservableObject, IRecipient<GoalsChange
     {
         _logger.Info("Khởi tạo bộ dữ liệu mẫu ban đầu cho Overlay HUD");
 
-        // Dữ liệu mẫu hôm nay
         var g1 = await _goalService.AddDailyGoalAsync("Uống 2L nước trong ngày");
         await _goalService.ToggleGoalAsync(g1.Id); // Đã xong
 
         await _goalService.AddDailyGoalAsync("Hoàn thành code OverlayWindow");
         await _goalService.AddDailyGoalAsync("Đi bộ 15 phút buổi tối");
 
-        // Dữ liệu mẫu tháng này
         await _goalService.AddMonthlyGoalAsync("Đọc xong 1 cuốn sách chuyên môn");
         var m2 = await _goalService.AddMonthlyGoalAsync("Nghiệm thu giai đoạn 3 GoalOverlay");
         await _goalService.ToggleGoalAsync(m2.Id); // Đã xong

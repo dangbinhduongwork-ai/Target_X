@@ -1,12 +1,562 @@
 <Window x:Class="GoalOverlay.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="GoalOverlay"
-        Height="450" Width="600"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:GoalOverlay.ViewModels"
+        mc:Ignorable="d"
+        Title="GoalOverlay - Quản Lý Mục Tiêu"
+        Height="620" Width="680"
+        MinHeight="500" MinWidth="580"
         WindowStartupLocation="CenterScreen"
-        Background="#0F172A"
+        Background="#0B0F19"
         Foreground="#F8FAFC">
-    <Grid>
-        <!-- Cửa sổ trống theo chuẩn nghiệm thu Giai đoạn 1 -->
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+        <!-- Nút thêm hiện đại -->
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="16,9"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1D4ED8"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Nút xóa mục tiêu -->
+        <Style x:Key="DeleteButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="#EF4444"/>
+                    <Setter Property="Background" Value="#332126"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Kiểu dáng TabItem hiện đại -->
+        <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="FontSize" Value="13.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="18,10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="TabBorder" Background="Transparent" BorderThickness="0,0,0,2" BorderBrush="Transparent" Margin="0,0,8,0" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="#60A5FA"/>
+                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#3B82F6"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#F1F5F9"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Checkbox tròn hoàn thành -->
+        <Style x:Key="GoalCheckRound" TargetType="CheckBox">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Border x:Name="RoundBorder" Width="18" Height="18" CornerRadius="9"
+                                BorderBrush="#64748B" BorderThickness="1.8" Background="Transparent" VerticalAlignment="Center">
+                            <Path x:Name="CheckIcon" Data="M3,9 L7,13 L15,4" Stroke="White" StrokeThickness="2"
+                                  Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="RoundBorder" Property="Background" Value="#10B981"/>
+                                <Setter TargetName="RoundBorder" Property="BorderBrush" Value="#10B981"/>
+                                <Setter TargetName="CheckIcon" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="RoundBorder" Property="BorderBrush" Value="#38BDF8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,18">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="🎯 GoalOverlay" FontSize="22" FontWeight="Bold" Foreground="#60A5FA"/>
+                <TextBlock Text="Quản lý mục tiêu cá nhân &amp; Live Preview tức thì trên Overlay" FontSize="12.5" Foreground="#94A3B8" Margin="0,3,0,0"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- TabControl Chính -->
+        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0">
+
+            <!-- TAB 1: HÔM NAY -->
+            <TabItem Header="☀️ Hôm nay">
+                <Grid Margin="0,16,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Khung nhập mục tiêu mới -->
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox x:Name="TxtDailyInput"
+                                 Text="{Binding NewDailyText, UpdateSourceTrigger=PropertyChanged}"
+                                 MaxLength="120"
+                                 Background="#1E293B"
+                                 Foreground="#F8FAFC"
+                                 CaretBrush="#60A5FA"
+                                 BorderBrush="#334155"
+                                 BorderThickness="1"
+                                 FontSize="13.5"
+                                 Padding="12,10"
+                                 VerticalContentAlignment="Center"
+                                 KeyDown="TxtDailyInput_KeyDown"/>
+
+                        <Button Grid.Column="1"
+                                Content="+ Thêm"
+                                Style="{StaticResource PrimaryButton}"
+                                Command="{Binding AddDailyGoalCommand}"
+                                Margin="10,0,0,0"/>
+                    </Grid>
+
+                    <!-- Thông báo validation -->
+                    <TextBlock Grid.Row="1" Text="{Binding ValidationMessage}" Foreground="#EF4444" FontSize="11.5" Margin="2,0,0,8"/>
+
+                    <!-- Danh sách mục tiêu hôm nay (Kéo thả, Checkbox, Double-click sửa) -->
+                    <ListBox Grid.Row="2"
+                             x:Name="ListDailyGoals"
+                             ItemsSource="{Binding TodayGoals}"
+                             Background="#111827"
+                             BorderBrush="#1F2937"
+                             BorderThickness="1"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             AllowDrop="True"
+                             PreviewMouseLeftButtonDown="ListBox_PreviewMouseLeftButtonDown"
+                             MouseMove="ListBox_MouseMove"
+                             Drop="ListDailyGoals_Drop">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Padding" Value="10,8"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                <Setter Property="BorderBrush" Value="#1E293B"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#1E293B"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:GoalItemViewModel}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Tay cầm kéo thả ⠿ -->
+                                    <TextBlock Grid.Column="0" Text="⠿" Foreground="#475569" FontSize="14" VerticalAlignment="Center"
+                                               Margin="0,0,10,0" Cursor="SizeAll" ToolTip="Kéo để sắp xếp lại vị trí"/>
+
+                                    <!-- Checkbox hoàn thành -->
+                                    <CheckBox Grid.Column="1"
+                                              IsChecked="{Binding IsDone}"
+                                              Style="{StaticResource GoalCheckRound}"
+                                              Command="{Binding DataContext.ToggleGoalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                              CommandParameter="{Binding}"
+                                              Margin="0,0,10,0"/>
+
+                                    <!-- Hiển thị text mục tiêu bình thường (Nhấp đúp chuột để sửa) -->
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding Text}"
+                                               FontSize="13.5"
+                                               Foreground="#F1F5F9"
+                                               TextWrapping="Wrap"
+                                               VerticalAlignment="Center"
+                                               MouseLeftButtonDown="GoalText_MouseLeftButtonDown"
+                                               ToolTip="Nhấp đúp chuột để sửa nhanh">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsDone}" Value="True">
+                                                        <Setter Property="TextDecorations" Value="Strikethrough"/>
+                                                        <Setter Property="Foreground" Value="#64748B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+
+                                    <!-- Ô sửa nhanh tại chỗ (hiển thị khi IsEditing = true) -->
+                                    <TextBox Grid.Column="2"
+                                             Text="{Binding EditText, UpdateSourceTrigger=PropertyChanged}"
+                                             MaxLength="120"
+                                             Background="#0F172A"
+                                             Foreground="#38BDF8"
+                                             BorderBrush="#38BDF8"
+                                             BorderThickness="1"
+                                             Padding="6,4"
+                                             FontSize="13"
+                                             KeyDown="EditGoalTextBox_KeyDown"
+                                             LostFocus="EditGoalTextBox_LostFocus">
+                                        <TextBox.Style>
+                                            <Style TargetType="TextBox">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBox.Style>
+                                    </TextBox>
+
+                                    <!-- Nút xóa mục tiêu -->
+                                    <Button Grid.Column="3"
+                                            Content="✕"
+                                            Style="{StaticResource DeleteButton}"
+                                            Command="{Binding DataContext.DeleteGoalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip="Xóa mục tiêu này"
+                                            Margin="8,0,0,0"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 2: THÁNG NÀY -->
+            <TabItem Header="🗓️ Tháng này">
+                <Grid Margin="0,16,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox x:Name="TxtMonthlyInput"
+                                 Text="{Binding NewMonthlyText, UpdateSourceTrigger=PropertyChanged}"
+                                 MaxLength="120"
+                                 Background="#1E293B"
+                                 Foreground="#F8FAFC"
+                                 CaretBrush="#60A5FA"
+                                 BorderBrush="#334155"
+                                 BorderThickness="1"
+                                 FontSize="13.5"
+                                 Padding="12,10"
+                                 VerticalContentAlignment="Center"
+                                 KeyDown="TxtMonthlyInput_KeyDown"/>
+
+                        <Button Grid.Column="1"
+                                Content="+ Thêm"
+                                Style="{StaticResource PrimaryButton}"
+                                Command="{Binding AddMonthlyGoalCommand}"
+                                Margin="10,0,0,0"/>
+                    </Grid>
+
+                    <TextBlock Grid.Row="1" Text="{Binding ValidationMessage}" Foreground="#EF4444" FontSize="11.5" Margin="2,0,0,8"/>
+
+                    <ListBox Grid.Row="2"
+                             x:Name="ListMonthlyGoals"
+                             ItemsSource="{Binding MonthGoals}"
+                             Background="#111827"
+                             BorderBrush="#1F2937"
+                             BorderThickness="1"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             AllowDrop="True"
+                             PreviewMouseLeftButtonDown="ListBox_PreviewMouseLeftButtonDown"
+                             MouseMove="ListBox_MouseMove"
+                             Drop="ListMonthlyGoals_Drop">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Padding" Value="10,8"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                <Setter Property="BorderBrush" Value="#1E293B"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#1E293B"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:GoalItemViewModel}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Column="0" Text="⠿" Foreground="#475569" FontSize="14" VerticalAlignment="Center"
+                                               Margin="0,0,10,0" Cursor="SizeAll" ToolTip="Kéo để sắp xếp lại vị trí"/>
+
+                                    <CheckBox Grid.Column="1"
+                                              IsChecked="{Binding IsDone}"
+                                              Style="{StaticResource GoalCheckRound}"
+                                              Command="{Binding DataContext.ToggleGoalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                              CommandParameter="{Binding}"
+                                              Margin="0,0,10,0"/>
+
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding Text}"
+                                               FontSize="13.5"
+                                               Foreground="#F1F5F9"
+                                               TextWrapping="Wrap"
+                                               VerticalAlignment="Center"
+                                               MouseLeftButtonDown="GoalText_MouseLeftButtonDown"
+                                               ToolTip="Nhấp đúp chuột để sửa nhanh">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsDone}" Value="True">
+                                                        <Setter Property="TextDecorations" Value="Strikethrough"/>
+                                                        <Setter Property="Foreground" Value="#64748B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+
+                                    <TextBox Grid.Column="2"
+                                             Text="{Binding EditText, UpdateSourceTrigger=PropertyChanged}"
+                                             MaxLength="120"
+                                             Background="#0F172A"
+                                             Foreground="#38BDF8"
+                                             BorderBrush="#38BDF8"
+                                             BorderThickness="1"
+                                             Padding="6,4"
+                                             FontSize="13"
+                                             KeyDown="EditGoalTextBox_KeyDown"
+                                             LostFocus="EditGoalTextBox_LostFocus">
+                                        <TextBox.Style>
+                                            <Style TargetType="TextBox">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBox.Style>
+                                    </TextBox>
+
+                                    <Button Grid.Column="3"
+                                            Content="✕"
+                                            Style="{StaticResource DeleteButton}"
+                                            Command="{Binding DataContext.DeleteGoalCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip="Xóa mục tiêu này"
+                                            Margin="8,0,0,0"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 3: CÀI ĐẶT (LIVE PREVIEW) -->
+            <TabItem Header="⚙️ Cài đặt">
+                <ScrollViewer Margin="0,16,0,0" VerticalScrollBarVisibility="Auto">
+                    <StackPanel MaxWidth="580" HorizontalAlignment="Left">
+
+                        <!-- Nhóm 1: Hiển thị giao diện -->
+                        <Border Background="#111827" CornerRadius="10" Padding="18" Margin="0,0,0,16" BorderBrush="#1F2937" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="🎨 Tùy chỉnh Giao diện Overlay (Live Preview)" FontWeight="Bold" FontSize="14" Foreground="#38BDF8" Margin="0,0,0,14"/>
+
+                                <!-- Độ trong suốt -->
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="50"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Độ trong suốt (Opacity):" VerticalAlignment="Center" Foreground="#CBD5E1"/>
+                                    <Slider Grid.Column="1" Minimum="0.2" Maximum="1.0" Value="{Binding Opacity, Mode=TwoWay}"
+                                            TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding Opacity, StringFormat='{}{0:P0}'}" Foreground="#94A3B8"
+                                               HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <!-- Cỡ chữ -->
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="50"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Cỡ chữ (Font Size):" VerticalAlignment="Center" Foreground="#CBD5E1"/>
+                                    <Slider Grid.Column="1" Minimum="11" Maximum="20" Value="{Binding FontSize, Mode=TwoWay}"
+                                            TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding FontSize, StringFormat='{}{0:0} px'}" Foreground="#94A3B8"
+                                               HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <!-- Màu chữ -->
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Màu chữ mục tiêu:" VerticalAlignment="Center" Foreground="#CBD5E1"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <Button Width="26" Height="26" Background="#F8FAFC" BorderBrush="#334155" Margin="0,0,8,0" Cursor="Hand"
+                                                Command="{Binding SelectColorCommand}" CommandParameter="#F8FAFC" ToolTip="Trắng"/>
+                                        <Button Width="26" Height="26" Background="#38BDF8" BorderBrush="#334155" Margin="0,0,8,0" Cursor="Hand"
+                                                Command="{Binding SelectColorCommand}" CommandParameter="#38BDF8" ToolTip="Xanh Cyan"/>
+                                        <Button Width="26" Height="26" Background="#FDE047" BorderBrush="#334155" Margin="0,0,8,0" Cursor="Hand"
+                                                Command="{Binding SelectColorCommand}" CommandParameter="#FDE047" ToolTip="Vàng nhạt"/>
+                                        <Button Width="26" Height="26" Background="#4ADE80" BorderBrush="#334155" Margin="0,0,8,0" Cursor="Hand"
+                                                Command="{Binding SelectColorCommand}" CommandParameter="#4ADE80" ToolTip="Xanh lá"/>
+                                        <Button Width="26" Height="26" Background="#F472B6" BorderBrush="#334155" Margin="0,0,8,0" Cursor="Hand"
+                                                Command="{Binding SelectColorCommand}" CommandParameter="#F472B6" ToolTip="Hồng phấn"/>
+                                        <TextBlock Text="{Binding TextColor, StringFormat='Màu đang chọn: {0}'}" Foreground="#94A3B8"
+                                                   VerticalAlignment="Center" Margin="10,0,0,0" FontSize="11.5"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Nhóm 2: Màn hình & Tương tác -->
+                        <Border Background="#111827" CornerRadius="10" Padding="18" Margin="0,0,0,16" BorderBrush="#1F2937" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="🖥️ Màn hình &amp; Hành vi Hệ thống" FontWeight="Bold" FontSize="14" Foreground="#38BDF8" Margin="0,0,0,14"/>
+
+                                <!-- Chọn màn hình -->
+                                <Grid Margin="0,0,0,14">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Màn hình hiển thị:" VerticalAlignment="Center" Foreground="#CBD5E1"/>
+                                    <ComboBox Grid.Column="1"
+                                              ItemsSource="{Binding AvailableMonitors}"
+                                              SelectedIndex="{Binding SelectedMonitorIndex, Mode=TwoWay}"
+                                              Background="#1E293B" Foreground="#F8FAFC" Padding="8,6" MaxWidth="260" HorizontalAlignment="Left"/>
+                                </Grid>
+
+                                <!-- Chế độ Click-Through -->
+                                <CheckBox IsChecked="{Binding ClickThrough, Mode=TwoWay}" Margin="0,0,0,12" Cursor="Hand">
+                                    <StackPanel Margin="6,0,0,0">
+                                        <TextBlock Text="Chế độ Click-Through (Nhấp chuột xuyên qua)" FontWeight="SemiBold" Foreground="#F8FAFC"/>
+                                        <TextBlock Text="Cho phép bấm chuột xuyên qua Overlay tới ứng dụng bên dưới" FontSize="11.5" Foreground="#94A3B8"/>
+                                    </StackPanel>
+                                </CheckBox>
+
+                                <!-- Tự chuyển tiếp Carry-over -->
+                                <CheckBox IsChecked="{Binding CarryOverUnfinished, Mode=TwoWay}" Margin="0,0,0,6" Cursor="Hand">
+                                    <StackPanel Margin="6,0,0,0">
+                                        <TextBlock Text="Tự chuyển tiếp mục tiêu chưa xong (Carry-over)" FontWeight="SemiBold" Foreground="#F8FAFC"/>
+                                        <TextBlock Text="Tự động dời các mục tiêu hàng ngày chưa hoàn thành của hôm qua sang hôm nay" FontSize="11.5" Foreground="#94A3B8"/>
+                                    </StackPanel>
+                                </CheckBox>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>

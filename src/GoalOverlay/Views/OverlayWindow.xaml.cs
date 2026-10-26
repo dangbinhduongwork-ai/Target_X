@@ -45,6 +45,16 @@ public partial class OverlayWindow : Window
         // Đăng ký sự kiện hệ thống Windows
         SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
         SystemEvents.PowerModeChanged += SystemEvents_PowerModeChanged;
+
+        // Lắng nghe thay đổi cài đặt từ MainWindow để Live Preview
+        CommunityToolkit.Mvvm.Messaging.WeakReferenceMessenger.Default.Register<SettingsChangedMessage>(this, (r, msg) =>
+        {
+            if (_hWnd != IntPtr.Zero)
+            {
+                NativeMethods.SetClickThrough(_hWnd, msg.Settings.ClickThrough);
+                Dispatcher.InvokeAsync(RepositionWindow);
+            }
+        });
     }
 
     /// <summary>

@@ -108,7 +108,7 @@
                                 <TextBlock Grid.Column="1"
                                            Text="{Binding Text}"
                                            FontSize="{Binding DataContext.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
-                                           Foreground="#F8FAFC"
+                                           Foreground="{Binding DataContext.TextColor, RelativeSource={RelativeSource AncestorType=Window}}"
                                            TextWrapping="Wrap"
                                            VerticalAlignment="Center"
                                            Effect="{StaticResource TextDropShadow}">
@@ -160,7 +160,7 @@
                                 <TextBlock Grid.Column="1"
                                            Text="{Binding Text}"
                                            FontSize="{Binding DataContext.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
-                                           Foreground="#F8FAFC"
+                                           Foreground="{Binding DataContext.TextColor, RelativeSource={RelativeSource AncestorType=Window}}"
                                            TextWrapping="Wrap"
                                            VerticalAlignment="Center"
                                            Effect="{StaticResource TextDropShadow}">
