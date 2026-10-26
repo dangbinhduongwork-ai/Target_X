@@ -71,7 +71,7 @@
 - [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) hoặc mới hơn.
 - (Tùy chọn) [Inno Setup 6](https://jrsoftware.org/isinfo.php) để đóng gói file Setup:
   ```powershell
-  winget install JR.InnoSetup
+  winget install JRSoftware.InnoSetup
   ```
 
 ### Các lệnh thực thi (PowerShell):

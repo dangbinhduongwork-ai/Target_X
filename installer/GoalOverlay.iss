@@ -1,5 +1,5 @@
 ; Script Inno Setup đóng gói ứng dụng GoalOverlay
-; Yêu cầu Inno Setup 6 trở lên (chạy lệnh: winget install JR.InnoSetup)
+; Yêu cầu Inno Setup 6 trở lên (chạy lệnh: winget install JRSoftware.InnoSetup)
 
 #define MyAppName "GoalOverlay"
 #define MyAppVersion "1.0.0"
@@ -47,10 +47,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "autostart"; Description: "Khởi động cùng Windows (chạy ngầm trong khay hệ thống)"; GroupDescription: "Tùy chọn khởi động:"; Flags: checkedonce
 
 [Files]
-; File thực thi chính của ứng dụng
+; File thuc thi doc lap duy nhat cua ung dung (Single-file self-contained)
 Source: "..\src\GoalOverlay\bin\Release\net8.0-windows\win-x64\publish\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-; Các file phụ trợ (nếu có, loại trừ file pdb)
-Source: "..\src\GoalOverlay\bin\Release\net8.0-windows\win-x64\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "{#MyAppExeName},*.pdb"
 
 [Icons]
 Name: "{userprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
